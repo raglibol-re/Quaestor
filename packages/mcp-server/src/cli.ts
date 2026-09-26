@@ -4,6 +4,7 @@ import {
   QuaestorClient,
   availableOf,
   decodeLabel,
+  findBudgetPda,
   findProjectPda,
   fromBaseUnits,
   statusName,
@@ -122,6 +123,42 @@ program
       n.children.forEach((c) => print(c, depth + 1));
     };
     print(root, 0);
+  });
+
+program
+  .command("allocate")
+  .description("Allocate a child budget (owner authority)")
+  .requiredOption("--project <pubkey>")
+  .requiredOption("--parent <budget pubkey>")
+  .requiredOption("--agent <child agent pubkey>")
+  .requiredOption("--amount <usdc>")
+  .option("--label <s>", "label", "agent")
+  .option("--per-tx <usdc>")
+  .option("--daily <usdc>")
+  .option("--can-delegate")
+  .action(async (opts) => {
+    const owner = ownerKeypair();
+    const { client } = makeClient(owner);
+    const project = new PublicKey(opts.project);
+    const agent = new PublicKey(opts.agent);
+    const sig = await client
+      .allocateChild({
+        authority: owner.publicKey,
+        feePayer: owner.publicKey,
+        project,
+        parent: new PublicKey(opts.parent),
+        childAgent: agent,
+        label: opts.label,
+        amount: toBaseUnits(opts.amount),
+        perTxLimit: opts.perTx ? toBaseUnits(opts.perTx) : null,
+        periodLimit: opts.daily ? toBaseUnits(opts.daily) : null,
+        periodSeconds: opts.daily ? 86400 : 0,
+        canDelegate: !!opts.canDelegate,
+      })
+      .rpc();
+    const [child] = findBudgetPda(project, agent);
+    console.log(`child budget: ${child.toBase58()}`);
+    console.log(`signature:    ${sig}`);
   });
 
 program
