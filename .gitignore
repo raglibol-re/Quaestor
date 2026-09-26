@@ -1,0 +1,40 @@
+# --- Anchor / Rust ---
+.anchor
+.DS_Store
+target
+**/*.rs.bk
+node_modules
+test-ledger
+.yarn
+.surfpool
+
+# --- Secrets & keystores (NEVER commit) ---
+.env
+.env.local
+.env.*.local
+**/.env
+!.env.example
+.quaestor/
+**/keys/
+*.pem
+
+# --- JS/TS build outputs ---
+dist
+build
+.next
+out
+.turbo
+.vercel
+coverage
+*.tsbuildinfo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# --- Editor / OS ---
+.idea
+.vscode/*
+!.vscode/extensions.json
+Thumbs.db

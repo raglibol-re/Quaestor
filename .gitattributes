@@ -1,0 +1,25 @@
+# Normalize line endings to LF (critical for building in WSL from a Windows checkout)
+* text=auto eol=lf
+
+# Explicit text types
+*.rs   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+*.sh   text eol=lf
+*.yaml text eol=lf
+*.yml  text eol=lf
+
+# Binary assets
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.so   binary
+*.bin  binary
+*.wasm binary
+*-keypair.json binary
