@@ -1,0 +1,14 @@
+node_modules
+.git
+target
+.next
+dist
+build
+test-ledger
+.anchor
+.surfpool
+*.log
+programs
+tests
+scripts
+migrations
