@@ -9,7 +9,7 @@ use anchor_lang::{
     },
     AccountDeserialize, InstructionData, ToAccountMetas,
 };
-use anchor_lang::prelude::Pubkey;
+pub use anchor_lang::prelude::Pubkey;
 use anchor_lang::solana_program::clock::Clock;
 use anchor_lang::Id;
 use anchor_spl::associated_token::{self, AssociatedToken};
@@ -66,6 +66,40 @@ pub fn setup() -> Env {
     }
 }
 
+/// A ready-to-use project: env + owner + created project, optionally funded.
+pub struct Ctx {
+    pub env: Env,
+    pub owner: Keypair,
+    pub project: Pubkey,
+    pub vault: Pubkey,
+    pub root_budget: Pubkey,
+}
+
+/// Create env + owner + project (id 1), deposit `deposit_amount` into the vault.
+pub fn bootstrap(deposit_amount: u64) -> Ctx {
+    let mut env = setup();
+    let owner = Keypair::new();
+    env.svm.airdrop(&owner.pubkey(), 1_000_000_000).unwrap();
+
+    let (ix, h) = ix_create_project(&owner.pubkey(), &env.mint, 1, label("proj"), &env.payer.pubkey());
+    send(&mut env.svm, &owner.pubkey(), &[ix], &[&owner]).expect("create_project");
+
+    if deposit_amount > 0 {
+        let owner_ata = create_token_account(&mut env.svm, &env.payer, &env.mint, &owner.pubkey());
+        mint_to(&mut env.svm, &env.payer, &env.mint, &owner_ata, &env.mint_authority, deposit_amount);
+        let ix = ix_deposit(&owner.pubkey(), &h.project, &h.root_budget, &env.mint, &owner_ata, &h.vault, deposit_amount);
+        send(&mut env.svm, &owner.pubkey(), &[ix], &[&owner]).expect("deposit");
+    }
+
+    Ctx {
+        env,
+        owner,
+        project: h.project,
+        vault: h.vault,
+        root_budget: h.root_budget,
+    }
+}
+
 // ---------- signing / sending ----------
 
 pub fn send(
@@ -74,6 +108,9 @@ pub fn send(
     ixs: &[Instruction],
     signers: &[&Keypair],
 ) -> TransactionResult {
+    // Advance the blockhash so otherwise-identical transactions get distinct signatures
+    // (LiteSVM rejects duplicates with AlreadyProcessed).
+    svm.expire_blockhash();
     let msg = Message::new_with_blockhash(ixs, Some(fee_payer), &svm.latest_blockhash());
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), signers).unwrap();
     svm.send_transaction(tx)
@@ -355,6 +392,37 @@ pub fn ix_spend(
     };
     let mut metas = accts.to_account_metas(None);
     metas.extend(ancestor_metas(svm, budget));
+    Instruction {
+        program_id: quaestor::ID,
+        accounts: metas,
+        data: quaestor::instruction::Spend { amount }.data(),
+    }
+}
+
+/// Build a spend with an explicit (possibly malformed) ancestor chain — for negative chain tests.
+pub fn ix_spend_chain(
+    agent: &Pubkey,
+    project: &Pubkey,
+    budget: &Pubkey,
+    mint: &Pubkey,
+    recipient: &Pubkey,
+    vault: &Pubkey,
+    amount: u64,
+    chain: &[Pubkey],
+) -> Instruction {
+    let accts = quaestor::accounts::Spend {
+        agent: *agent,
+        project: *project,
+        budget: *budget,
+        mint: *mint,
+        recipient: *recipient,
+        vault: *vault,
+        token_program: spl_token::ID,
+    };
+    let mut metas = accts.to_account_metas(None);
+    for pk in chain {
+        metas.push(AccountMeta::new_readonly(*pk, false));
+    }
     Instruction {
         program_id: quaestor::ID,
         accounts: metas,
