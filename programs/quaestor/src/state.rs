@@ -1,8 +1,5 @@
-use anchor_lang::prelude::*;
+pub mod budget;
+pub mod project;
 
-#[account]
-#[derive(InitSpace)]
-pub struct Counter {
-    pub count: u64,
-    pub authority: Pubkey,
-}
+pub use budget::*;
+pub use project::*;
