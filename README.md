@@ -158,7 +158,8 @@ docs/                  mcp-setup.md, devnet.md, evm.md
 ### MCP tools (what an agent sees)
 
 `get_my_budget` · `pay` · `create_subagent_budget` · `list_subagents` ·
-`freeze_subagent` · `revoke_subagent` · `reclaim_subagent` · `get_history`
+`freeze_subagent` · `revoke_subagent` · `reclaim_subagent` · `get_history` ·
+`pay_x402` (pay for a paywalled HTTP resource straight from the budget)
 
 Amounts are in decimal USDC; errors are human-readable (`"Per-transaction limit exceeded:
 limit 0.50 USDC"`). The agent's private key lives in an encrypted local keystore
@@ -240,11 +241,18 @@ The `spent + reserved ≤ allocated` invariant, the ancestor-chain walk, `Option
 snap-to-now period reset, and ancestor-agent freeze are identical on both. See
 [`docs/evm.md`](docs/evm.md) to deploy + wire the MCP server to an EVM chain.
 
+### x402 (shipped)
+
+An agent can pay for a **paywalled HTTP resource** directly from its on-chain-enforced budget
+(`pay_x402`): on an HTTP `402`, Quaestor pays the required USDC from the budget — so the per-tx,
+daily, allowlist, and freeze limits apply to real-world API payments — attaches the on-chain
+payment as proof, and retries. A 3 USDC request against a 0.50/tx budget is **rejected before the
+resource is ever fetched**. Demo: `scripts/x402-demo.sh` (self-contained on anvil).
+
 ### Roadmap / stretch
 
-- **x402** — pay for paywalled HTTP resources directly from an on-chain-enforced budget.
 - **Live EVM dashboard** — the dashboard chain-switch lands once the contract is deployed to a
-  public testnet.
+  public testnet (needs a live tree to render).
 
 ## License
 
