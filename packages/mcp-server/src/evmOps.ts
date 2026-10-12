@@ -113,17 +113,22 @@ export class EvmOps implements ChainOps {
     const to = getAddress(recipient);
     const amount = toBaseUnits(amountUsdc);
     const reason = attribution?.reason?.trim();
-    await this.preflight("spend", [this.ctx.agentBudgetKey, to, amount]);
+    const ZERO32 = `0x${"0".repeat(64)}` as Hex;
+    // Hash attribution to bytes32 once, and pass the SAME 5 args to both the preflight
+    // simulate and the forwarded call — `spend` is a 5-arg function since attribution landed.
+    const taskIdHex: Hex = attribution?.taskId?.trim()
+      ? labelToBytes32(attribution.taskId.trim().slice(0, 31))
+      : ZERO32;
+    const reasonHashHex: Hex = reason ? keccak256(Buffer.from(reason, "utf8")) : ZERO32;
+    await this.preflight("spend", [this.ctx.agentBudgetKey, to, amount, taskIdHex, reasonHashHex]);
     const hash = await this.ctx.client.spendForwarded({
       agentAccount: this.ctx.agentAccount,
       relayerWalletClient: this.ctx.relayerWalletClient,
       budgetKey: this.ctx.agentBudgetKey,
       recipient: to,
       amount,
-      taskId: attribution?.taskId?.trim()
-        ? labelToBytes32(attribution.taskId.trim().slice(0, 31))
-        : undefined,
-      reasonHash: reason ? keccak256(Buffer.from(reason, "utf8")) : undefined,
+      taskId: taskIdHex,
+      reasonHash: reasonHashHex,
     });
     if (hasAttribution(attribution)) {
       const reason = attribution.reason?.trim();

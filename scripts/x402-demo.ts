@@ -207,7 +207,7 @@ async function main() {
         address: quaestorAddr,
         abi: QUAESTOR_ABI,
         functionName: "spend",
-        args: [agentBudget, to, amount],
+        args: [agentBudget, to, amount, `0x${"0".repeat(64)}`, `0x${"0".repeat(64)}`],
         account: agent.address,
       });
       const signature = await client.spendForwarded({

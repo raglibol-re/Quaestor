@@ -84,7 +84,7 @@ async function main() {
 
   process.stdout.write("  prover tries to pay 0.50 USDC (over its 0.25/tx limit)... ");
   try {
-    await publicClient.simulateContract({ address: CONTRACT, abi: QUAESTOR_ABI as never, functionName: "spend", args: [proverBudget, merchant, toBaseUnits("0.50")], account: prover.address } as never);
+    await publicClient.simulateContract({ address: CONTRACT, abi: QUAESTOR_ABI as never, functionName: "spend", args: [proverBudget, merchant, toBaseUnits("0.50"), `0x${"0".repeat(64)}`, `0x${"0".repeat(64)}`], account: prover.address } as never);
     console.log("!! UNEXPECTED: it was allowed");
   } catch (e) {
     const name = (e as { cause?: { data?: { errorName?: string } } })?.cause?.data?.errorName
