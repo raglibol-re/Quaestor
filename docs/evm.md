@@ -7,10 +7,18 @@
 | **Quaestor** | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) |
 | **ERC2771Forwarder** | [`0x10D587C78896a621328475d000a613a96eD64d6b`](https://sepolia.basescan.org/address/0x10D587C78896a621328475d000a613a96eD64d6b) |
 | **MockUSDC** (6-dec) | [`0xC34F2245E68c0e2EaA631066921f7EAbC6980069`](https://sepolia.basescan.org/address/0xC34F2245E68c0e2EaA631066921f7EAbC6980069) |
-| **Demo project key** | `0x5faf71ed8ff27d66fb149ff610ef8bbd911057c387bfc4d12213653d27d11346` |
+| **Demo project key** | `0xf47c977ba5a30f063d199af1956ebffe5581347d370c77f622dfc54efe2bb579` |
 
-Demo tree (seeded via `scripts/seed-evm.ts`): `root → orchestrator 60 USDC → research 20 (5/tx) +
-writer 10 (2/tx)` — the two sub-budgets were allocated **gaslessly** (agent signed, relayer paid).
+Demo tree (`scripts/populate-evm.ts`) — a lived-in 4-level tree with real **gasless** spends and a
+frozen branch; every agent holds zero native gas (the relayer pays):
+
+```
+acme-research  alloc 50 USDC
+└─ orchestrator  30
+   ├─ research   12  (≤3/tx)   spent 3.5
+   │  └─ scraper  4  (≤1/tx)   spent 1.3
+   └─ writer      6  (≤2/tx)   spent 1.5   [FROZEN by the orchestrator]
+```
 
 ---
 
@@ -95,7 +103,7 @@ components as the Solana view:
 NEXT_PUBLIC_EVM_RPC_URL=https://sepolia.base.org
 NEXT_PUBLIC_EVM_CONTRACT=0xe704014D856aecD47B797CF47d42648060276d43
 NEXT_PUBLIC_EVM_CHAIN_ID=84532
-NEXT_PUBLIC_EVM_PROJECT=0x5faf71ed8ff27d66fb149ff610ef8bbd911057c387bfc4d12213653d27d11346
+NEXT_PUBLIC_EVM_PROJECT=0xf47c977ba5a30f063d199af1956ebffe5581347d370c77f622dfc54efe2bb579
 NEXT_PUBLIC_EVM_EXPLORER=https://sepolia.basescan.org
 NEXT_PUBLIC_EVM_LABEL=Base Sepolia
 ```
