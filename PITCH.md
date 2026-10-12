@@ -112,7 +112,7 @@ The budget — not the key — is the first-class object.
 - **Links:**
   - Dashboard: https://quaestor-dashboard.vercel.app
   - Program (devnet): https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet
-  - Repo: <add before submit>
+  - Repo: https://github.com/raglibol-re/Quaestor
   - Demo video: <add before submit>
 - **What's next:** Multi-chain (one Solidity `Quaestor.sol` on Tempo + an Ethereum testnet,
   `QUAESTOR_CHAIN` switch), ancestor-agent freeze, x402 payment integration.
