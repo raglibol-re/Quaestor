@@ -1,26 +1,57 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { baseUnitsString, formatUSDC, renderResult, toBaseUnits } from "@quaestor/sdk";
 import { z } from "zod";
 import type { ChainOps } from "./chainOps";
 import { buildChainOps } from "./opsFactory";
 import { x402Fetch } from "./x402";
 
-function textResult(text: string) {
-  return { content: [{ type: "text" as const, text }] };
+// Brand money (two decimals, comma thousands + USDC) from a decimal-USDC string.
+const usdc = (decimal: string) => formatUSDC(toBaseUnits(decimal), { unit: true });
+const short = (a: string, n = 4) => (a.length <= 2 * n + 1 ? a : `${a.slice(0, n)}…${a.slice(-n)}`);
+
+// Quaestor app icon (ring-and-fork mark on a Basalt tile) for the MCP host UI.
+const ICON_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+  '<rect width="64" height="64" rx="12" fill="#121110"/>' +
+  '<g transform="translate(9 9) scale(0.72)" fill="none" stroke="#4fb39a">' +
+  '<circle cx="28" cy="28" r="19" stroke-width="6"/>' +
+  '<path d="M41 41 L50 50 M50 50 H59 M50 50 V59" stroke-width="5" stroke-linecap="square"/>' +
+  '<rect x="56" y="47" width="6" height="6" fill="#4fb39a" stroke="none"/>' +
+  '<rect x="47" y="56" width="6" height="6" fill="#4fb39a" stroke="none"/></g></svg>';
+const ICON_DATA_URI = `data:image/svg+xml;utf8,${encodeURIComponent(ICON_SVG)}`;
+
+function isRecord(x: unknown): x is Record<string, unknown> {
+  return typeof x === "object" && x !== null && !Array.isArray(x);
+}
+function okResult(text: string, structuredContent?: Record<string, unknown>) {
+  const base = { content: [{ type: "text" as const, text }] };
+  return structuredContent ? { ...base, structuredContent } : base;
 }
 function errResult(text: string) {
   return { content: [{ type: "text" as const, text }], isError: true };
 }
+// Return the data as structuredContent, with a readable JSON text fallback.
 function jsonResult(obj: unknown) {
-  return textResult(JSON.stringify(obj, null, 2));
+  return okResult(JSON.stringify(obj, null, 2), isRecord(obj) ? obj : { result: obj });
+}
+// A budget-limit refusal, in the brand's REJECTED-onchain shape.
+function rejected(ops: ChainOps, e: unknown) {
+  return errResult(
+    renderResult({
+      state: "REJECTED",
+      sentence: `onchain. ${ops.toFriendlyError(e)}`,
+      next: "reduce the amount, or request a larger budget from your parent agent.",
+    })
+  );
 }
 
 function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "get_my_budget",
     {
-      title: "Get my budget",
+      title: "Get budget",
       description:
         "Show this agent's available balance, allocated/spent, per-transaction and daily limits, status and expiry. Amounts are in USDC.",
       inputSchema: {},
@@ -37,21 +68,39 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "pay",
     {
-      title: "Pay USDC",
+      title: "Request spend",
       description:
-        "Send USDC from this agent's budget to a recipient wallet. Enforced on-chain: per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this budget or any ancestor.",
+        "Send USDC from this agent's budget to a recipient wallet. Enforced onchain: per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this budget or any ancestor.",
       inputSchema: {
         recipient: z.string().describe("Recipient wallet address (base58)."),
         amount_usdc: z.string().describe('Amount in USDC as a decimal string, e.g. "0.50".'),
-        memo: z.string().optional().describe("Optional human note (not stored on-chain)."),
+        memo: z.string().optional().describe("Optional human note (not stored onchain)."),
       },
     },
     async ({ recipient, amount_usdc }) => {
       try {
         const r = await ops.pay(recipient, amount_usdc);
-        return textResult(`Paid ${r.amount} USDC to ${r.recipient}.\nSignature: ${r.signature}`);
+        const amt = usdc(r.amount);
+        return okResult(
+          renderResult({
+            state: "APPROVED",
+            sentence: `onchain. Spent ${amt} to ${short(r.recipient)}.`,
+            rows: [
+              { key: "recipient", value: r.recipient },
+              { key: "amount", value: amt, align: "right" },
+              { key: "signature", value: r.signature },
+            ],
+          }),
+          {
+            status: "approved",
+            recipient: r.recipient,
+            amount: r.amount,
+            amount_base_units: baseUnitsString(toBaseUnits(r.amount)),
+            signature: r.signature,
+          }
+        );
       } catch (e) {
-        return errResult(ops.toFriendlyError(e));
+        return rejected(ops, e);
       }
     }
   );
@@ -59,15 +108,15 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "create_subagent_budget",
     {
-      title: "Create a sub-agent budget",
+      title: "Delegate budget",
       description:
-        "Delegate part of this agent's budget to a new sub-agent. Limits cannot exceed this agent's own limits. Returns the new agent name and a ready-to-paste MCP config snippet for it.",
+        "Delegate part of this agent's budget to a new subagent. Limits cannot exceed this agent's own limits. Returns the new agent name and a ready-to-paste MCP config snippet for it.",
       inputSchema: {
         label: z.string().describe("Human label, e.g. \"research-agent\"."),
         amount_usdc: z.string().describe("Amount to allocate, in USDC."),
         per_tx_limit_usdc: z.string().optional().describe("Optional per-transaction cap, in USDC."),
         daily_limit_usdc: z.string().optional().describe("Optional rolling 24h cap, in USDC."),
-        can_delegate: z.boolean().optional().describe("May the sub-agent create its own sub-agents? Default false."),
+        can_delegate: z.boolean().optional().describe("May the subagent create its own subagents? Default false."),
         expires_in_hours: z.number().optional().describe("Optional expiry, in hours from now."),
         allowlist: z.array(z.string()).optional().describe("Optional list of allowed recipient wallets."),
       },
@@ -83,10 +132,29 @@ function registerTools(server: McpServer, ops: ChainOps) {
           expiresInHours: args.expires_in_hours,
           allowlist: args.allowlist,
         });
-        return textResult(
-          `Created sub-agent "${args.label}" (${r.agentName}).\n` +
-            `Agent key: ${r.agentPubkey}\nBudget: ${r.budget}\nSignature: ${r.signature}\n\n` +
-            `MCP config snippet for the sub-agent:\n${r.configSnippet}`
+        const amt = usdc(args.amount_usdc);
+        return okResult(
+          renderResult({
+            state: "DELEGATED",
+            sentence: `Delegated ${amt} to subagent "${args.label}".`,
+            rows: [
+              { key: "agent", value: r.agentName },
+              { key: "agent key", value: r.agentPubkey },
+              { key: "budget", value: r.budget },
+              { key: "allocated", value: amt, align: "right" },
+              { key: "signature", value: r.signature },
+            ],
+          }) + `\n\nMCP config snippet for the subagent:\n${r.configSnippet}`,
+          {
+            status: "delegated",
+            label: args.label,
+            agent_name: r.agentName,
+            agent_pubkey: r.agentPubkey,
+            budget: r.budget,
+            allocated: args.amount_usdc,
+            allocated_base_units: baseUnitsString(toBaseUnits(args.amount_usdc)),
+            signature: r.signature,
+          }
         );
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
@@ -97,8 +165,8 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "list_subagents",
     {
-      title: "List sub-agents",
-      description: "List this agent's direct sub-agent budgets with their status and balances.",
+      title: "List subagents",
+      description: "List this agent's direct subagent budgets with their status and balances.",
       inputSchema: {},
     },
     async () => {
@@ -113,18 +181,26 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "freeze_subagent",
     {
-      title: "Freeze a sub-agent",
+      title: "Freeze branch",
       description:
-        "Freeze (or unfreeze) one of your sub-agents, instantly blocking it and its whole sub-tree. Enforced on-chain — you may do this to any of your own descendants (ancestor-agent authority).",
+        "Freeze (or unfreeze) one of your subagents, instantly blocking it and its whole subtree. Enforced onchain — you may do this to any of your own descendants (ancestor-agent authority).",
       inputSchema: {
-        label: z.string().describe("Label of the sub-agent."),
+        label: z.string().describe("Label of the subagent."),
         unfreeze: z.boolean().optional().describe("Set true to unfreeze instead of freeze."),
       },
     },
     async ({ label, unfreeze }) => {
       try {
         const r = await ops.freezeSubagent(label, !unfreeze);
-        return textResult(`Sub-agent "${label}" is now ${r.status}.\nSignature: ${r.signature}`);
+        const isFrozen = /froz/i.test(r.status);
+        return okResult(
+          renderResult({
+            state: isFrozen ? "FROZEN" : "RELEASED",
+            sentence: `Branch "${label}" ${isFrozen ? "frozen" : "unfrozen"} onchain.`,
+            rows: [{ key: "signature", value: r.signature }],
+          }),
+          { status: r.status, label, signature: r.signature }
+        );
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }
@@ -134,14 +210,21 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "revoke_subagent",
     {
-      title: "Revoke a sub-agent",
-      description: "Permanently revoke a sub-agent (terminal). Requires project-owner authority.",
-      inputSchema: { label: z.string().describe("Label of the sub-agent.") },
+      title: "Revoke subagent",
+      description: "Permanently revoke a subagent (terminal). Requires project-owner authority.",
+      inputSchema: { label: z.string().describe("Label of the subagent.") },
     },
     async ({ label }) => {
       try {
         const r = await ops.revokeSubagent(label);
-        return textResult(`Sub-agent "${label}" revoked.\nSignature: ${r.signature}`);
+        return okResult(
+          renderResult({
+            state: "REVOKED",
+            sentence: `Subagent "${label}" revoked onchain.`,
+            rows: [{ key: "signature", value: r.signature }],
+          }),
+          { status: "revoked", label, signature: r.signature }
+        );
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }
@@ -151,15 +234,32 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "reclaim_subagent",
     {
-      title: "Reclaim a sub-agent's funds",
+      title: "Reclaim funds",
       description:
-        "Reclaim a revoked/expired sub-agent's unused funds back into this agent's available balance.",
-      inputSchema: { label: z.string().describe("Label of the sub-agent.") },
+        "Reclaim a revoked/expired subagent's unused funds back into this agent's available balance.",
+      inputSchema: { label: z.string().describe("Label of the subagent.") },
     },
     async ({ label }) => {
       try {
         const r = await ops.reclaimSubagent(label);
-        return textResult(`Reclaimed ${r.reclaimed} USDC from "${label}".\nSignature: ${r.signature}`);
+        const amt = usdc(r.reclaimed);
+        return okResult(
+          renderResult({
+            state: "RELEASED",
+            sentence: `Reclaimed ${amt} from "${label}".`,
+            rows: [
+              { key: "reclaimed", value: amt, align: "right" },
+              { key: "signature", value: r.signature },
+            ],
+          }),
+          {
+            status: "reclaimed",
+            label,
+            reclaimed: r.reclaimed,
+            reclaimed_base_units: baseUnitsString(toBaseUnits(r.reclaimed)),
+            signature: r.signature,
+          }
+        );
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }
@@ -169,7 +269,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "get_history",
     {
-      title: "Get recent transactions",
+      title: "Recent transactions",
       description: "List recent transactions touching this agent's budget account.",
       inputSchema: { limit: z.number().optional().describe("Max entries (default 10).") },
     },
@@ -185,12 +285,12 @@ function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "pay_x402",
     {
-      title: "Pay for a paywalled HTTP resource (x402)",
+      title: "Pay for a paywalled resource (x402)",
       description:
         "Fetch an HTTP URL that may require payment via the x402 protocol. On an HTTP 402 response, " +
-        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR BUDGET (budget-enforced on-chain: " +
+        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR BUDGET (budget-enforced onchain: " +
         "per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this " +
-        "budget or any ancestor), then retry with the on-chain payment proof and return the resource. " +
+        "budget or any ancestor), then retry with the onchain payment proof and return the resource. " +
         "If a budget limit rejects the payment, the resource is NOT fetched and the reason is returned.",
       inputSchema: {
         url: z.string().describe("The URL of the (possibly paywalled) resource to fetch."),
@@ -199,19 +299,39 @@ function registerTools(server: McpServer, ops: ChainOps) {
     async ({ url }) => {
       try {
         const r = await x402Fetch(ops, url);
-        const bodyStr =
-          typeof r.body === "string" ? r.body : JSON.stringify(r.body, null, 2);
+        const bodyStr = typeof r.body === "string" ? r.body : JSON.stringify(r.body, null, 2);
         if (r.payment) {
-          return textResult(
-            `Paid ${r.payment.amount} USDC to ${r.payment.payTo} for ${url}. ` +
-              `Proof: ${r.payment.txHash}\n\nResource (HTTP ${r.status}):\n${bodyStr}`
+          const amt = usdc(r.payment.amount);
+          return okResult(
+            renderResult({
+              state: "APPROVED",
+              sentence: `onchain. Paid ${amt} to ${short(r.payment.payTo)} for ${url}.`,
+              rows: [
+                { key: "amount", value: amt, align: "right" },
+                { key: "pay to", value: r.payment.payTo },
+                { key: "proof", value: r.payment.txHash },
+                { key: "http", value: String(r.status) },
+              ],
+            }) + `\n\nResource:\n${bodyStr}`,
+            {
+              status: "approved",
+              url,
+              amount: r.payment.amount,
+              amount_base_units: baseUnitsString(toBaseUnits(r.payment.amount)),
+              pay_to: r.payment.payTo,
+              proof: r.payment.txHash,
+              http_status: r.status,
+            }
           );
         }
-        return textResult(
-          `Fetched ${url} (HTTP ${r.status}) — no payment was required.\n\n${bodyStr}`
-        );
+        return okResult(`Fetched ${url} (HTTP ${r.status}) — no payment required.\n\n${bodyStr}`, {
+          status: "ok",
+          url,
+          http_status: r.status,
+          payment_required: false,
+        });
       } catch (e) {
-        return errResult(ops.toFriendlyError(e));
+        return rejected(ops, e);
       }
     }
   );
@@ -220,7 +340,12 @@ function registerTools(server: McpServer, ops: ChainOps) {
 async function main() {
   const ops = await buildChainOps();
   console.error(`[quaestor-mcp] ${ops.describe()}`);
-  const server = new McpServer({ name: "quaestor", version: "0.1.0" });
+  const server = new McpServer({
+    name: "quaestor",
+    version: "0.1.0",
+    title: "Quaestor",
+    icons: [{ src: ICON_DATA_URI, mimeType: "image/svg+xml", sizes: ["any"] }],
+  });
   registerTools(server, ops);
   await server.connect(new StdioServerTransport());
   console.error("[quaestor-mcp] ready");
