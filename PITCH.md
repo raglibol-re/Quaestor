@@ -58,14 +58,21 @@ The budget — not the key — is the first-class object.
 
 ## What's live (not a mock)
 
-- **Solana program on devnet:** `FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP` — 9 instructions,
-  ancestor-chain enforcement, reservation accounting.
-- **25 Rust/LiteSVM tests** including a randomized property test on the accounting invariant.
-- **Real MCP server** (8 tools) an agent can drive from Claude Desktop/Code; encrypted local
-  keystore so the model never sees a key.
-- **Owner CLI** (11 commands) and a **live dashboard** showing the budget tree update in
-  real time: https://quaestor-dashboard.vercel.app
-- **Reproducible ~90s demo** that runs the full story on devnet with real explorer links.
+- **Solana program on devnet:** `FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP` — 10 instructions,
+  ancestor-chain enforcement, reservation accounting. **28 Rust/LiteSVM tests** incl. a randomized
+  property test on the accounting invariant.
+- **Multi-chain:** a faithful **EVM port** (`Quaestor.sol`, 18 Foundry tests incl. an invariant
+  fuzz) with an **ERC-2771 gasless forwarder** — agents hold no gas on EVM either — behind a
+  `QUAESTOR_CHAIN` switch, so the same MCP tools drive Solana or Tempo/Base.
+- **Ancestor-agent freeze:** a parent/grandparent *agent* can freeze a descendant subtree on-chain,
+  not just the human owner.
+- **x402:** agents pay for paywalled HTTP resources **directly from a budget** — the per-tx/daily/
+  freeze limits apply to real API payments; an over-limit request is rejected before the resource
+  is fetched.
+- **Real MCP server** (9 tools) an agent drives from Claude Desktop/Code; encrypted local keystore
+  (scrypt + AES-256-GCM) so the model never sees a key. **Owner CLI** + a **live dashboard**:
+  https://quaestor-dashboard.vercel.app
+- **Reproducible demos** on devnet (Solana) and anvil (EVM gasless + x402) with real explorer links.
 
 ## Technical highlights (why judges should care)
 
@@ -107,12 +114,14 @@ The budget — not the key — is the first-class object.
   they hold), with per-transaction and time-window limits enforced inside the Solana program.
   Freeze any node and its whole subtree stops instantly. Agents access budgets over MCP and
   need no SOL — a relayer pays fees.
-- **Tech used:** Solana, Anchor 1.2, SPL Token, Model Context Protocol (MCP), TypeScript SDK,
-  Next.js + Solana Wallet Adapter, LiteSVM (tests), Vercel.
+- **Tech used:** Solana, Anchor 1.2, SPL Token, LiteSVM; **Solidity 0.8 + Foundry, OpenZeppelin
+  (ERC-2771 forwarder, SafeERC20), viem** for the EVM port; **x402** payment protocol; Model
+  Context Protocol (MCP), TypeScript SDKs, Next.js + Solana Wallet Adapter, Vercel.
 - **Links:**
   - Dashboard: https://quaestor-dashboard.vercel.app
   - Program (devnet): https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet
   - Repo: https://github.com/raglibol-re/Quaestor
   - Demo video: <add before submit>
-- **What's next:** Multi-chain (one Solidity `Quaestor.sol` on Tempo + an Ethereum testnet,
-  `QUAESTOR_CHAIN` switch), ancestor-agent freeze, x402 payment integration.
+- **What's next:** Public-testnet EVM deployments (Tempo + Base Sepolia — the contract + gasless
+  relayer are deploy-ready), a chain-switch dashboard that renders either chain's tree live, and a
+  mainnet hardening pass.
