@@ -147,10 +147,17 @@ async function requireOwner(ctx: AgentContext) {
 }
 
 export async function freezeSubagent(ctx: AgentContext, label: string, freeze: boolean) {
-  await requireOwner(ctx);
+  // Ancestor-agent freeze: the running agent is the parent (an ancestor) of its own sub-agent,
+  // so it can freeze/unfreeze it directly — no owner required.
   const child = await findChildByLabel(ctx, label);
-  const signature = await ctx.client
-    .setStatus({ owner: ctx.agentPubkey, project: ctx.config.project, budget: child.pubkey, freeze })
+  const signature = await (
+    await ctx.client.agentSetStatus({
+      authority: ctx.agentPubkey,
+      project: ctx.config.project,
+      budget: child.pubkey,
+      freeze,
+    })
+  )
     .signers([ctx.agentKeypair])
     .rpc();
   return { signature, label, status: freeze ? "frozen" : "active" };

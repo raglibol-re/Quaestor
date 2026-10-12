@@ -53,6 +53,7 @@ pub fn handle_spend<'info>(
         ctx.remaining_accounts,
         ctx.program_id,
         now,
+        None,
     )?;
     require!(facts.ancestors_all_active, QuaestorError::AncestorNotActive);
 

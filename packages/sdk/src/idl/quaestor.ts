@@ -14,6 +14,20 @@ export type Quaestor = {
   },
   "instructions": [
     {
+      "name": "agentSetStatus",
+      "docs": [
+        "An ancestor *agent* freezes (true) or unfreezes (false) a descendant budget.",
+        "remaining_accounts = the budget's ancestor chain (child -> ... -> root)."
+      ],
+      "discriminator": [204, 201, 35, 214, 178, 163, 209, 29],
+      "accounts": [
+        { "name": "authority", "signer": true },
+        { "name": "project", "relations": ["budget"] },
+        { "name": "budget", "writable": true }
+      ],
+      "args": [{ "name": "freeze", "type": "bool" }]
+    },
+    {
       "name": "allocateChild",
       "docs": [
         "Parent (agent) or owner allocates a new child budget, reserving `amount` in the parent."

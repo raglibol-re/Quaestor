@@ -443,6 +443,28 @@ pub fn ix_set_status(owner: &Pubkey, project: &Pubkey, budget: &Pubkey, freeze: 
     }
 }
 
+/// Ancestor-agent freeze/unfreeze: remaining accounts = the budget's ancestor chain.
+pub fn ix_agent_set_status(
+    svm: &LiteSVM,
+    authority: &Pubkey,
+    project: &Pubkey,
+    budget: &Pubkey,
+    freeze: bool,
+) -> Instruction {
+    let accts = quaestor::accounts::AgentSetStatus {
+        authority: *authority,
+        project: *project,
+        budget: *budget,
+    };
+    let mut metas = accts.to_account_metas(None);
+    metas.extend(ancestor_metas(svm, budget));
+    Instruction {
+        program_id: quaestor::ID,
+        accounts: metas,
+        data: quaestor::instruction::AgentSetStatus { freeze }.data(),
+    }
+}
+
 pub fn ix_revoke(owner: &Pubkey, project: &Pubkey, budget: &Pubkey) -> Instruction {
     let accts = quaestor::accounts::Revoke {
         owner: *owner,

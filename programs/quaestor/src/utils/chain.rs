@@ -10,6 +10,9 @@ pub struct ChainFacts {
     pub ancestors_all_active: bool,
     /// True iff any ancestor is Revoked.
     pub any_revoked: bool,
+    /// True iff `find_agent` was `Some(k)` and some ancestor's `agent == k`.
+    /// Used to authorize an ancestor *agent* (not just the owner) to freeze a descendant.
+    pub authority_is_ancestor_agent: bool,
 }
 
 /// Walk the ancestor chain of a node.
@@ -29,10 +32,12 @@ pub fn walk_ancestors<'info>(
     remaining: &'info [AccountInfo<'info>],
     program_id: &Pubkey,
     now: i64,
+    find_agent: Option<Pubkey>,
 ) -> Result<ChainFacts> {
     let mut expected_parent = start_parent;
     let mut all_active = true;
     let mut any_revoked = false;
+    let mut authority_is_ancestor_agent = false;
     let mut i: usize = 0;
 
     while let Some(pk) = expected_parent {
@@ -72,6 +77,9 @@ pub fn walk_ancestors<'info>(
         if anc.is_expired(now) {
             all_active = false;
         }
+        if matches!(find_agent, Some(k) if anc.agent == k) {
+            authority_is_ancestor_agent = true;
+        }
 
         expected_parent = anc.parent;
         i += 1;
@@ -85,5 +93,6 @@ pub fn walk_ancestors<'info>(
     Ok(ChainFacts {
         ancestors_all_active: all_active,
         any_revoked,
+        authority_is_ancestor_agent,
     })
 }

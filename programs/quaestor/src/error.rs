@@ -56,4 +56,6 @@ pub enum QuaestorError {
     InvalidAmount,
     #[msg("Budget is already revoked")]
     AlreadyRevoked,
+    #[msg("Signer is not an ancestor agent of this budget")]
+    NotAnAncestor,
 }

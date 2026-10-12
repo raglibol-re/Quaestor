@@ -1,3 +1,4 @@
+pub mod agent_set_status;
 pub mod allocate_child;
 pub mod create_project;
 pub mod deposit;
@@ -8,6 +9,7 @@ pub mod set_status;
 pub mod spend;
 pub mod withdraw;
 
+pub use agent_set_status::*;
 pub use allocate_child::*;
 pub use create_project::*;
 pub use deposit::*;

@@ -80,6 +80,15 @@ pub mod quaestor {
         instructions::set_status::handle_set_status(ctx, freeze)
     }
 
+    /// An ancestor *agent* freezes (true) or unfreezes (false) a descendant budget.
+    /// remaining_accounts = the budget's ancestor chain (child -> ... -> root).
+    pub fn agent_set_status<'info>(
+        ctx: Context<'info, AgentSetStatus<'info>>,
+        freeze: bool,
+    ) -> Result<()> {
+        instructions::agent_set_status::handle_agent_set_status(ctx, freeze)
+    }
+
     /// Owner permanently revokes a budget.
     pub fn revoke(ctx: Context<Revoke>) -> Result<()> {
         instructions::revoke::handle_revoke(ctx)

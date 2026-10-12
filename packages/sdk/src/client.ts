@@ -193,6 +193,27 @@ export class QuaestorClient {
     });
   }
 
+  /**
+   * Ancestor-*agent* freeze/unfreeze: `authority` must be an ancestor agent of `budget`
+   * (any level up to the root). Appends the budget's ancestor chain as remaining accounts.
+   */
+  async agentSetStatus(p: {
+    authority: PublicKey;
+    project: PublicKey;
+    budget: PublicKey;
+    freeze: boolean;
+  }) {
+    const chain = await this.getAncestorChain(p.budget);
+    return this.program.methods
+      .agentSetStatus(p.freeze)
+      .accountsPartial({
+        authority: p.authority,
+        project: p.project,
+        budget: p.budget,
+      })
+      .remainingAccounts(chain.map((pubkey) => ({ pubkey, isSigner: false, isWritable: false })));
+  }
+
   revoke(p: { owner: PublicKey; project: PublicKey; budget: PublicKey }) {
     return this.program.methods.revoke().accountsPartial({
       owner: p.owner,
