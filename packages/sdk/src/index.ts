@@ -6,4 +6,5 @@ export * from "./pdas";
 export * from "./amounts";
 export * from "./util";
 export * from "./tree";
+export * from "./format";
 export * from "./client";
