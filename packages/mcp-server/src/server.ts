@@ -14,7 +14,8 @@ import {
 } from "@quaestor/sdk";
 import { z } from "zod";
 import { BudgetRejection, type ChainOps } from "./chainOps";
-import { buildChainOps } from "./opsFactory";
+import type { DeskOps } from "./deskOps";
+import { buildOps } from "./opsFactory";
 import { x402Fetch } from "./x402";
 
 // Brand money (two decimals, comma thousands + USDC) from a decimal-USDC string.
@@ -376,16 +377,219 @@ function registerTools(server: McpServer, ops: ChainOps) {
   );
 }
 
+// A desk policy refusal, in the brand's REJECTED-onchain shape (desk errors are plain viem
+// reverts, not BudgetRejection, so there are no requested/available/limit numbers to align).
+function deskRejected(desk: DeskOps, e: unknown) {
+  return errResult(
+    renderResult({
+      state: "REJECTED",
+      sentence: `onchain. ${desk.toFriendlyError(e)}`,
+      next: "adjust the order to fit the mandate's limits, or ask the principal to widen the mandate.",
+    })
+  );
+}
+
+interface MandateView {
+  mandateId: string;
+  principal: string;
+  agent: string;
+  status: string;
+  allowedAssets: number[];
+  deposited: string;
+  maxNotionalPerOrder: string | null;
+  maxNotionalPerDay: string | null;
+  dayNotionalUsed: string;
+  equityFloor: string | null;
+  expiresAt: number | null;
+}
+
+/** Register the Hyperliquid trading-desk tools (QUAESTOR_CHAIN=hyperliquid). */
+function registerDeskTools(server: McpServer, desk: DeskOps) {
+  server.registerTool(
+    "get_my_mandate",
+    {
+      title: "Get trading mandate",
+      description:
+        "Show this agent's Hyperliquid trading mandate: allowed asset indices, max notional per order and per rolling 24h, equity floor (drawdown stop), day notional used, status and expiry.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const m = (await desk.getMyMandate()) as MandateView;
+        const rows = [
+          { key: "principal", value: m.principal },
+          { key: "agent", value: m.agent },
+          { key: "assets", value: m.allowedAssets.length ? m.allowedAssets.join(", ") : "none" },
+          { key: "deposited", value: `${m.deposited} USDC`, align: "right" as const },
+          { key: "max/order", value: m.maxNotionalPerOrder ?? "unlimited", align: "right" as const },
+          { key: "max/day", value: m.maxNotionalPerDay ?? "unlimited", align: "right" as const },
+          { key: "day used", value: m.dayNotionalUsed, align: "right" as const },
+          { key: "equity floor", value: m.equityFloor ?? "none", align: "right" as const },
+          ...(m.expiresAt ? [{ key: "expires", value: String(m.expiresAt) }] : []),
+        ];
+        return okResult(
+          renderResult({
+            state: m.status.toUpperCase(),
+            sentence: `trading mandate for ${short(m.agent)}.`,
+            rows,
+          }),
+          m as unknown as Record<string, unknown>
+        );
+      } catch (e) {
+        return errResult(desk.toFriendlyError(e));
+      }
+    }
+  );
+
+  server.registerTool(
+    "place_order",
+    {
+      title: "Place order",
+      description:
+        "Place a limit order on Hyperliquid through this agent's desk mandate. Enforced onchain BEFORE the order is sent to HyperCore: allowed-asset list, max notional per order, max notional per rolling 24h, equity floor (drawdown stop), and freeze/expiry of the mandate.",
+      inputSchema: {
+        asset: z.number().int().describe("HyperCore asset index to trade."),
+        is_buy: z.boolean().describe("true = buy/long, false = sell/short."),
+        price: z.string().describe("Limit price in HyperCore uint64 units (integer string)."),
+        size: z.string().describe("Order size in HyperCore uint64 units (integer string)."),
+        tif: z.number().int().optional().describe("Time-in-force byte (default GTC)."),
+        cloid: z.string().optional().describe("Optional client order id (uint64 integer string)."),
+        task_id: z
+          .string()
+          .optional()
+          .describe("Optional task id to attribute this trade to (for cost-per-task accounting)."),
+        reason: z
+          .string()
+          .optional()
+          .describe(
+            "Optional reason for this trade (attribution). Plaintext is logged off-chain; a keccak256 hash is written onchain in the OrderPlaced event so the trade is auditable."
+          ),
+      },
+    },
+    async ({ asset, is_buy, price, size, tif, cloid, task_id, reason }) => {
+      try {
+        const r = await desk.placeOrder({
+          asset,
+          isBuy: is_buy,
+          px: price,
+          sz: size,
+          tif,
+          cloid,
+          taskId: task_id,
+          reason,
+        });
+        const side = r.isBuy ? "BUY" : "SELL";
+        const rows = [
+          { key: "asset", value: String(r.asset) },
+          { key: "side", value: side },
+          { key: "price", value: r.px, align: "right" as const },
+          { key: "size", value: r.sz, align: "right" as const },
+          { key: "notional", value: r.notional, align: "right" as const },
+          ...(r.taskId ? [{ key: "task", value: r.taskId }] : []),
+          ...(r.reason ? [{ key: "reason", value: r.reason }] : []),
+          { key: "tx", value: r.signature },
+        ];
+        return okResult(
+          renderResult({
+            state: "APPROVED",
+            sentence: `onchain. ${side} ${r.sz} of asset ${r.asset} @ ${r.px} (notional ${r.notional}).`,
+            rows,
+          }),
+          {
+            status: "approved",
+            asset: r.asset,
+            is_buy: r.isBuy,
+            price: r.px,
+            size: r.sz,
+            notional: r.notional,
+            task_id: r.taskId ?? null,
+            reason: r.reason ?? null,
+            tx: r.signature,
+          }
+        );
+      } catch (e) {
+        return deskRejected(desk, e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "cancel_order",
+    {
+      title: "Cancel order",
+      description:
+        "Cancel a resting order on Hyperliquid through this agent's desk mandate, by exchange oid or by client cloid.",
+      inputSchema: {
+        asset: z.number().int().describe("HyperCore asset index of the order."),
+        oid_or_cloid: z.string().describe("The exchange oid, or the client cloid if by_cloid=true (uint64 integer string)."),
+        by_cloid: z.boolean().optional().describe("Set true to cancel by client cloid instead of exchange oid."),
+      },
+    },
+    async ({ asset, oid_or_cloid, by_cloid }) => {
+      try {
+        const r = await desk.cancelOrder({ asset, oidOrCloid: oid_or_cloid, byCloid: !!by_cloid });
+        return okResult(
+          renderResult({
+            state: "CANCELLED",
+            sentence: `onchain. Cancelled ${r.byCloid ? "cloid" : "oid"} ${r.oidOrCloid} on asset ${r.asset}.`,
+            rows: [
+              { key: "asset", value: String(r.asset) },
+              { key: r.byCloid ? "cloid" : "oid", value: r.oidOrCloid },
+              { key: "tx", value: r.signature },
+            ],
+          }),
+          { status: "cancelled", asset: r.asset, oid_or_cloid: r.oidOrCloid, by_cloid: r.byCloid, tx: r.signature }
+        );
+      } catch (e) {
+        return deskRejected(desk, e);
+      }
+    }
+  );
+
+  server.registerTool(
+    "freeze_mandate",
+    {
+      title: "Freeze mandate",
+      description:
+        "Freeze (or unfreeze) this trading mandate, instantly halting all order placement. Enforced onchain (principal/owner authority).",
+      inputSchema: {
+        unfreeze: z.boolean().optional().describe("Set true to unfreeze instead of freeze."),
+      },
+    },
+    async ({ unfreeze }) => {
+      try {
+        const r = await desk.setStatus(!unfreeze);
+        const isFrozen = /froz/i.test(r.status);
+        return okResult(
+          renderResult({
+            state: isFrozen ? "FROZEN" : "RELEASED",
+            sentence: `Mandate ${isFrozen ? "frozen" : "unfrozen"} onchain.`,
+            rows: [{ key: "tx", value: r.signature }],
+          }),
+          { status: r.status, tx: r.signature }
+        );
+      } catch (e) {
+        return errResult(desk.toFriendlyError(e));
+      }
+    }
+  );
+}
+
 async function main() {
-  const ops = await buildChainOps();
-  console.error(`[quaestor-mcp] ${ops.describe()}`);
+  const built = await buildOps();
+  const describe = built.kind === "desk" ? built.desk.describe() : built.ops.describe();
+  console.error(`[quaestor-mcp] ${describe}`);
   const server = new McpServer({
     name: "quaestor",
     version: "0.1.0",
     title: "Quaestor",
     icons: [{ src: ICON_DATA_URI, mimeType: "image/svg+xml", sizes: ["any"] }],
   });
-  registerTools(server, ops);
+  if (built.kind === "desk") {
+    registerDeskTools(server, built.desk);
+  } else {
+    registerTools(server, built.ops);
+  }
   await server.connect(new StdioServerTransport());
   console.error("[quaestor-mcp] ready");
 }

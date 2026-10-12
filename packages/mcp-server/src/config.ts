@@ -20,13 +20,13 @@ export function loadKeypairFile(path: string): Keypair {
 
 export const DEFAULT_RPC = "https://api.devnet.solana.com";
 
-/** Which chain this MCP server instance targets. `tempo`/`base` are EVM. */
-export type ChainKind = "solana" | "tempo" | "base";
+/** Which chain this MCP server instance targets. `tempo`/`base` are EVM budget chains; `hyperliquid` is the EVM trading desk. */
+export type ChainKind = "solana" | "tempo" | "base" | "hyperliquid";
 
 export function chainKind(): ChainKind {
   const c = (process.env.QUAESTOR_CHAIN || "solana").toLowerCase();
-  if (c === "solana" || c === "tempo" || c === "base") return c;
-  throw new Error(`unknown QUAESTOR_CHAIN "${c}" (expected solana|tempo|base)`);
+  if (c === "solana" || c === "tempo" || c === "base" || c === "hyperliquid") return c;
+  throw new Error(`unknown QUAESTOR_CHAIN "${c}" (expected solana|tempo|base|hyperliquid)`);
 }
 
 export interface McpConfig {
@@ -75,6 +75,34 @@ export function loadEvmConfig(chain: ChainKind): EvmConfig {
     forwarder: reqHex("QUAESTOR_FORWARDER"),
     chainId: Number(reqEnv("QUAESTOR_CHAIN_ID")),
     projectKey: reqHex("QUAESTOR_EVM_PROJECT"),
+    agent: reqEnv("QUAESTOR_AGENT"),
+    passphrase: reqEnv("QUAESTOR_KEYSTORE_PASSPHRASE"),
+    relayerKey: reqHex("QUAESTOR_EVM_RELAYER_KEY"),
+  };
+}
+
+export interface DeskConfig {
+  chain: ChainKind; // hyperliquid
+  rpcUrl: string;
+  deskContract: `0x${string}`;
+  forwarder: `0x${string}`;
+  chainId: number;
+  /** The mandate id (bytes32) this agent acts under. */
+  mandateId: `0x${string}`;
+  agent: string;
+  passphrase: string;
+  relayerKey: `0x${string}`;
+}
+
+/** Config for the Hyperliquid trading-desk MCP server instance (QUAESTOR_CHAIN=hyperliquid). */
+export function loadDeskConfig(): DeskConfig {
+  return {
+    chain: "hyperliquid",
+    rpcUrl: reqEnv("QUAESTOR_DESK_RPC_URL"),
+    deskContract: reqHex("QUAESTOR_DESK_CONTRACT"),
+    forwarder: reqHex("QUAESTOR_DESK_FORWARDER"),
+    chainId: Number(reqEnv("QUAESTOR_CHAIN_ID")),
+    mandateId: reqHex("QUAESTOR_DESK_MANDATE"),
     agent: reqEnv("QUAESTOR_AGENT"),
     passphrase: reqEnv("QUAESTOR_KEYSTORE_PASSPHRASE"),
     relayerKey: reqHex("QUAESTOR_EVM_RELAYER_KEY"),
