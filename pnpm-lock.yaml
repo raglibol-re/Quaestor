@@ -107,6 +107,31 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  apps/landing:
+    dependencies:
+      next:
+        specifier: ^15.5.4
+        version: 15.5.26(@babel/core@7.29.7)(@types/node@22.20.4)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.7.4
+        version: 22.20.4
+      '@types/react':
+        specifier: ^18.3.11
+        version: 18.3.31
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.31)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/evm-sdk:
     dependencies:
       viem:
