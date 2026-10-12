@@ -60,6 +60,27 @@ export interface X402FetchResult {
   body: unknown;
   /** Present when a budget-enforced payment was made (HTTP 402 path); null otherwise. */
   payment: { txHash: string; amount: string; payTo: string } | null;
+  /**
+   * Present (with `payment: null`) when a 402 was detected but NOT yet paid — either because
+   * the caller did not confirm, so the required URL/amount is returned for explicit review
+   * before any money moves. Re-call with `confirm: true` to pay.
+   */
+  preflight?: {
+    url: string;
+    amount: string;
+    payTo: string;
+    network: string;
+    description?: string;
+  } | null;
+}
+
+export interface X402Options {
+  /** Request headers / fetch init passed through to the underlying fetch. */
+  init?: FetchInit;
+  /** Must be true to actually pay on a 402. When false/unset, a 402 returns a preflight only. */
+  confirm?: boolean;
+  /** Per-call ceiling (decimal USDC). The required amount must be <= this (and <= the env cap). */
+  maxAmountUsdc?: string;
 }
 
 /** The subset of ChainOps the x402 client needs (lets demos pass a minimal adapter). */
@@ -83,6 +104,30 @@ export function baseUnitsToDecimal(base: string, decimals = 6): string {
   const intPart = padded.slice(0, cut);
   const frac = padded.slice(cut).replace(/0+$/, "");
   return (neg ? "-" : "") + (frac ? `${intPart}.${frac}` : intPart);
+}
+
+/** Human decimal string -> base-units bigint (USDC = 6 decimals). Pure string math. */
+export function decimalToBaseUnits(dec: string, decimals = 6): bigint {
+  const s = dec.trim();
+  const neg = s.startsWith("-");
+  const [intRaw, fracRaw = ""] = s.replace(/^[-+]/, "").split(".");
+  const frac = (fracRaw + "0".repeat(decimals)).slice(0, decimals);
+  const digits = `${intRaw || "0"}${frac}`.replace(/^0+(?=\d)/, "");
+  const v = BigInt(digits || "0");
+  return neg ? -v : v;
+}
+
+/**
+ * The effective per-call base-unit ceiling: the min of the tool arg and the
+ * `QUAESTOR_X402_MAX_USDC` env, or null if neither is set.
+ */
+function resolveMaxBase(maxAmountUsdc?: string): bigint | null {
+  const caps: bigint[] = [];
+  if (maxAmountUsdc != null && maxAmountUsdc !== "") caps.push(decimalToBaseUnits(maxAmountUsdc));
+  const envMax = process.env.QUAESTOR_X402_MAX_USDC;
+  if (envMax != null && envMax !== "") caps.push(decimalToBaseUnits(envMax));
+  if (caps.length === 0) return null;
+  return caps.reduce((a, b) => (a < b ? a : b));
 }
 
 export function encodePaymentHeader(h: X402PaymentHeader): string {
@@ -122,26 +167,62 @@ async function readBody(res: FetchResponse): Promise<unknown> {
 }
 
 /**
- * Fetch `url`, and on HTTP 402 pay for it from this agent's Quaestor budget, then retry with the
- * X-PAYMENT proof header. Returns the final response plus the payment proof. If the first response
- * is not 402, it is returned as-is (no payment). A budget rejection (per-tx / daily / frozen /
- * allowlist) propagates as a thrown Error from `ops.pay`.
+ * Fetch `url`. If the first response is not 402, return it as-is (no payment). On HTTP 402:
+ *   1. Enforce the per-call ceiling (`opts.maxAmountUsdc` and the `QUAESTOR_X402_MAX_USDC` env) —
+ *      if the required amount exceeds it, refuse: nothing is fetched or paid.
+ *   2. If `opts.confirm` is not true, return a **preflight** (url + amount + merchant) and pay
+ *      nothing, so the user can review before any money moves.
+ *   3. If confirmed, pay from this agent's Quaestor budget (budget-enforced on-chain), retry with
+ *      the X-PAYMENT proof header, and return the resource plus the payment proof.
+ * A budget rejection (per-tx / daily / frozen / allowlist) propagates as a thrown Error from `ops.pay`.
+ * NOTE: `confirm` defaults to true so existing callers/scripts pay as before; the MCP tool passes
+ * `confirm: false` on the first call to force the preflight.
  */
 export async function x402Fetch(
   ops: X402Ops,
   url: string,
-  init?: FetchInit
+  opts: X402Options = {}
 ): Promise<X402FetchResult> {
+  const { init } = opts;
   const first = await fetch(url, init);
   if (first.status !== 402) {
-    return { status: first.status, body: await readBody(first), payment: null };
+    return { status: first.status, body: await readBody(first), payment: null, preflight: null };
   }
 
-  const requirements = parse402(await readBody(first), ops.networkLabel());
+  const firstBody = await readBody(first);
+  const requirements = parse402(firstBody, ops.networkLabel());
   const humanAmount = baseUnitsToDecimal(requirements.maxAmountRequired);
 
-  // Budget-enforced on-chain spend to the merchant. Throws a friendly error if a Quaestor
-  // limit (per-tx / daily / available / allowlist / freeze / expiry) rejects the payment.
+  // (1) Enforce the configurable per-call ceiling BEFORE anything is paid or even preflighted.
+  const maxBase = resolveMaxBase(opts.maxAmountUsdc);
+  if (maxBase != null && BigInt(requirements.maxAmountRequired) > maxBase) {
+    throw new Error(
+      `x402: required ${humanAmount} USDC exceeds the per-call max ` +
+        `${baseUnitsToDecimal(maxBase.toString())} USDC — raise max_amount_usdc ` +
+        `(or set QUAESTOR_X402_MAX_USDC) to proceed. Nothing was fetched or paid.`
+    );
+  }
+
+  // (2) Preflight: a 402 was detected but not confirmed — return the exact URL/amount/merchant
+  // for explicit review. No money moves until a confirmed re-call.
+  const confirm = opts.confirm ?? true;
+  if (!confirm) {
+    return {
+      status: first.status,
+      body: firstBody,
+      payment: null,
+      preflight: {
+        url,
+        amount: humanAmount,
+        payTo: requirements.payTo,
+        network: requirements.network,
+        description: requirements.description,
+      },
+    };
+  }
+
+  // (3) Confirmed: budget-enforced on-chain spend to the merchant. Throws a friendly error if a
+  // Quaestor limit (per-tx / daily / available / allowlist / freeze / expiry) rejects the payment.
   const pr = await ops.pay(requirements.payTo, humanAmount);
 
   const header: X402PaymentHeader = {
@@ -165,5 +246,6 @@ export async function x402Fetch(
     status: paid.status,
     body: await readBody(paid),
     payment: { txHash: pr.signature, amount: pr.amount, payTo: requirements.payTo },
+    preflight: null,
   };
 }

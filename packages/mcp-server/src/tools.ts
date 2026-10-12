@@ -77,6 +77,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "get_my_mandate",
     {
       title: "Get mandate",
+      annotations: { readOnlyHint: true },
       description:
         "Show this agent's mandate: available balance, allocated/spent, per-transaction and daily limits, status and expiry. Amounts are in USDC.",
       inputSchema: {},
@@ -95,6 +96,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "pay",
     {
       title: "Request spend",
+      annotations: { destructiveHint: true },
       description:
         "Send USDC from this agent's mandate to a recipient wallet. Enforced onchain: per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this mandate or any ancestor.",
       inputSchema: {
@@ -149,6 +151,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "create_submandate",
     {
       title: "Delegate mandate",
+      annotations: { destructiveHint: true },
       description:
         "Carve a sub-mandate from this agent's mandate for a new subagent. Limits cannot exceed this agent's own limits (monotone tightening). Returns the new agent name and a ready-to-paste MCP config snippet for it.",
       inputSchema: {
@@ -206,6 +209,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "list_subagents",
     {
       title: "List subagents",
+      annotations: { readOnlyHint: true },
       description: "List this agent's direct sub-mandates with their status and balances.",
       inputSchema: {},
     },
@@ -223,6 +227,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "freeze_subagent",
     {
       title: "Freeze branch",
+      annotations: { destructiveHint: true },
       description:
         "Freeze (or unfreeze) one of your subagents, instantly blocking it and its whole subtree. Enforced onchain — you may do this to any of your own descendants (ancestor-agent authority).",
       inputSchema: {
@@ -252,6 +257,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "revoke_subagent",
     {
       title: "Revoke subagent",
+      annotations: { destructiveHint: true },
       description: "Permanently revoke a subagent (terminal). Requires project-owner authority.",
       inputSchema: { label: z.string().describe("Label of the subagent.") },
     },
@@ -276,6 +282,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "reclaim_subagent",
     {
       title: "Reclaim funds",
+      annotations: { destructiveHint: true },
       description:
         "Reclaim a revoked/expired subagent's unused funds back into this agent's available balance.",
       inputSchema: { label: z.string().describe("Label of the subagent.") },
@@ -311,6 +318,7 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "get_history",
     {
       title: "Recent transactions",
+      annotations: { readOnlyHint: true },
       description: "List recent transactions touching this agent's mandate account.",
       inputSchema: { limit: z.number().optional().describe("Max entries (default 10).") },
     },
@@ -327,20 +335,57 @@ export function registerTools(server: McpServer, ops: ChainOps) {
     "pay_x402",
     {
       title: "Pay for a paywalled resource (x402)",
+      annotations: { destructiveHint: true, openWorldHint: true },
       description:
-        "Fetch an HTTP URL that may require payment via the x402 protocol. On an HTTP 402 response, " +
-        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR MANDATE (mandate-enforced onchain: " +
-        "per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this " +
-        "mandate or any ancestor), then retry with the onchain payment proof and return the resource. " +
-        "If a mandate limit rejects the payment, the resource is NOT fetched and the reason is returned.",
+        "Fetch an HTTP URL that may require payment via the x402 protocol. Two-step by default: the " +
+        "FIRST call PREVIEWS the charge — on an HTTP 402 it returns the exact amount and merchant and " +
+        "pays NOTHING. Call again with confirm: true to pay the required USDC DIRECTLY FROM THIS AGENT'S " +
+        "QUAESTOR MANDATE (mandate-enforced onchain: per-transaction limit, daily limit, available " +
+        "balance, allowlist, and freeze/expiry of this mandate or any ancestor), then retry with the " +
+        "onchain payment proof and return the resource. A per-call ceiling (max_amount_usdc, plus the " +
+        "QUAESTOR_X402_MAX_USDC server cap) is enforced before any payment. If a limit rejects the " +
+        "payment, the resource is NOT fetched and the reason is returned.",
       inputSchema: {
         url: z.string().describe("The URL of the (possibly paywalled) resource to fetch."),
+        confirm: z
+          .boolean()
+          .optional()
+          .describe("Set true to actually pay. Omit/false to preview the required amount first (no payment)."),
+        max_amount_usdc: z
+          .string()
+          .optional()
+          .describe("Optional per-call ceiling in USDC. If the required amount exceeds it, nothing is paid."),
       },
     },
-    async ({ url }) => {
+    async ({ url, confirm, max_amount_usdc }) => {
       try {
-        const r = await x402Fetch(ops, url);
+        const r = await x402Fetch(ops, url, { confirm: confirm === true, maxAmountUsdc: max_amount_usdc });
         const bodyStr = typeof r.body === "string" ? r.body : JSON.stringify(r.body, null, 2);
+        if (r.preflight) {
+          const amt = usdc(r.preflight.amount);
+          return okResult(
+            renderResult({
+              state: "REVIEW",
+              sentence: `Payment required: ${amt} to ${short(r.preflight.payTo)} for ${url}.`,
+              rows: [
+                { key: "amount", value: amt, align: "right" },
+                { key: "pay to", value: r.preflight.payTo },
+                ...(r.preflight.description ? [{ key: "for", value: r.preflight.description }] : []),
+                { key: "network", value: r.preflight.network },
+              ],
+              next: "re-run pay_x402 with confirm: true to pay this from your mandate (limits still apply).",
+            }),
+            {
+              status: "payment_required",
+              url,
+              amount: r.preflight.amount,
+              amount_base_units: baseUnitsString(toBaseUnits(r.preflight.amount)),
+              pay_to: r.preflight.payTo,
+              network: r.preflight.network,
+              confirm_required: true,
+            }
+          );
+        }
         if (r.payment) {
           const amt = usdc(r.payment.amount);
           return okResult(
@@ -410,6 +455,7 @@ export function registerDeskTools(server: McpServer, desk: DeskOps) {
     "get_my_mandate",
     {
       title: "Get trading mandate",
+      annotations: { readOnlyHint: true },
       description:
         "Show this agent's Hyperliquid trading mandate: allowed asset indices, max notional per order and per rolling 24h, equity floor (drawdown stop), day notional used, status and expiry.",
       inputSchema: {},
@@ -446,6 +492,7 @@ export function registerDeskTools(server: McpServer, desk: DeskOps) {
     "place_order",
     {
       title: "Place order",
+      annotations: { destructiveHint: true },
       description:
         "Place a limit order on Hyperliquid through this agent's desk mandate. Enforced onchain BEFORE the order is sent to HyperCore: allowed-asset list, max notional per order, max notional per rolling 24h, equity floor (drawdown stop), and freeze/expiry of the mandate.",
       inputSchema: {
@@ -551,6 +598,7 @@ export function registerDeskTools(server: McpServer, desk: DeskOps) {
     "freeze_mandate",
     {
       title: "Freeze mandate",
+      annotations: { destructiveHint: true },
       description:
         "Freeze (or unfreeze) this trading mandate, instantly halting all order placement. Enforced onchain (principal/owner authority).",
       inputSchema: {
