@@ -1,4 +1,20 @@
-# Quaestor on EVM (Tempo + Base Sepolia)
+# Quaestor on EVM (Base Sepolia · Tempo)
+
+## Live on Base Sepolia (chain 84532)
+
+| | Address |
+|---|---|
+| **Quaestor** | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) |
+| **ERC2771Forwarder** | [`0x10D587C78896a621328475d000a613a96eD64d6b`](https://sepolia.basescan.org/address/0x10D587C78896a621328475d000a613a96eD64d6b) |
+| **MockUSDC** (6-dec) | [`0xC34F2245E68c0e2EaA631066921f7EAbC6980069`](https://sepolia.basescan.org/address/0xC34F2245E68c0e2EaA631066921f7EAbC6980069) |
+| **Demo project key** | `0x5faf71ed8ff27d66fb149ff610ef8bbd911057c387bfc4d12213653d27d11346` |
+
+Demo tree (seeded via `scripts/seed-evm.ts`): `root → orchestrator 60 USDC → research 20 (5/tx) +
+writer 10 (2/tx)` — the two sub-budgets were allocated **gaslessly** (agent signed, relayer paid).
+
+---
+
+
 
 Quaestor's reservation-accounting core is ported 1:1 to Solidity (`contracts/src/Quaestor.sol`):
 the same invariant `spent + reserved_for_children ≤ allocated`, the same ancestor-chain
@@ -68,6 +84,21 @@ QUAESTOR_EVM_RELAYER_KEY=0x<relayer-key> # pays gas; forwards agents' signed met
 The 8 MCP tools (`get_my_budget`, `pay`, `create_subagent_budget`, `list_subagents`,
 `freeze_subagent`, `revoke_subagent`, `reclaim_subagent`, `get_history`) behave identically to the
 Solana backend; agent actions are gasless (forwarded), owner actions are sent directly.
+
+## Dashboard EVM view
+
+The dashboard gains a **Solana / EVM** chain toggle once these `NEXT_PUBLIC_*` vars are set (the EVM
+tab is hidden otherwise). It renders the EVM project's budget tree read-only, reusing the same
+components as the Solana view:
+
+```bash
+NEXT_PUBLIC_EVM_RPC_URL=https://sepolia.base.org
+NEXT_PUBLIC_EVM_CONTRACT=0xe704014D856aecD47B797CF47d42648060276d43
+NEXT_PUBLIC_EVM_CHAIN_ID=84532
+NEXT_PUBLIC_EVM_PROJECT=0x5faf71ed8ff27d66fb149ff610ef8bbd911057c387bfc4d12213653d27d11346
+NEXT_PUBLIC_EVM_EXPLORER=https://sepolia.basescan.org
+NEXT_PUBLIC_EVM_LABEL=Base Sepolia
+```
 
 ## Reproduce the gasless demo (anvil)
 

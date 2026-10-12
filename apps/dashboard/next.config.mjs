@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ["@quaestor/sdk"],
+  transpilePackages: ["@quaestor/sdk", "@quaestor/evm-sdk"],
   webpack: (config, { webpack }) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,

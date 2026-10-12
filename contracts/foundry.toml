@@ -7,7 +7,9 @@ solc = "0.8.24"
 optimizer = true
 optimizer_runs = 200
 via_ir = true
-evm_version = "cancun"
+# "shanghai" (not "cancun") so the bytecode avoids MCOPY / transient-storage opcodes and
+# deploys on the broadest set of EVM chains (Sepolia, Base Sepolia, Tempo, ...).
+evm_version = "shanghai"
 fs_permissions = [{ access = "read", path = "./" }]
 
 [fuzz]
