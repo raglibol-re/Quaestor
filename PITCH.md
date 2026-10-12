@@ -119,7 +119,8 @@ The budget — not the key — is the first-class object.
   Context Protocol (MCP), TypeScript SDKs, Next.js + Solana Wallet Adapter, Vercel.
 - **Links:**
   - Dashboard: https://quaestor-dashboard.vercel.app
-  - Program (devnet): https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet
+  - Solana program (devnet): https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet
+  - EVM contract (Base Sepolia): https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43
   - Repo: https://github.com/raglibol-re/Quaestor
   - Demo video: <add before submit>
 - **What's next:** Public-testnet EVM deployments (Tempo + Base Sepolia — the contract + gasless
