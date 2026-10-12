@@ -1,7 +1,17 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { baseUnitsString, formatUSDC, renderRejection, renderResult, toBaseUnits } from "@quaestor/sdk";
+import {
+  baseUnitsString,
+  formatUSDC,
+  renderBudget,
+  renderBudgetList,
+  renderRejection,
+  renderResult,
+  toBaseUnits,
+  type BudgetView,
+  type SubagentView,
+} from "@quaestor/sdk";
 import { z } from "zod";
 import { BudgetRejection, type ChainOps } from "./chainOps";
 import { buildChainOps } from "./opsFactory";
@@ -71,7 +81,8 @@ function registerTools(server: McpServer, ops: ChainOps) {
     },
     async () => {
       try {
-        return jsonResult(await ops.getMyBudget());
+        const view = (await ops.getMyBudget()) as BudgetView;
+        return okResult(renderBudget(view), view as unknown as Record<string, unknown>);
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }
@@ -184,7 +195,8 @@ function registerTools(server: McpServer, ops: ChainOps) {
     },
     async () => {
       try {
-        return jsonResult(await ops.listSubagents());
+        const items = (await ops.listSubagents()) as SubagentView[];
+        return okResult(renderBudgetList({ title: "subagents", items }), { subagents: items });
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }

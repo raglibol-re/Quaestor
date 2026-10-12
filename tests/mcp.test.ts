@@ -110,9 +110,9 @@ describe("quaestor MCP server", () => {
     const orch = await connect("orchestrator");
     try {
       const tools = await orch.listTools();
-      assert.equal(tools.tools.length, 8, "exposes 8 tools");
+      assert.equal(tools.tools.length, 9, "exposes 9 tools");
 
-      const bud = JSON.parse(textOf(await orch.callTool({ name: "get_my_budget", arguments: {} })));
+      const bud: any = (await orch.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
       assert.equal(bud.available, "6");
       assert.equal(bud.label, "orchestrator");
 
@@ -122,7 +122,9 @@ describe("quaestor MCP server", () => {
       });
       assert.notOk(created.isError, textOf(created));
 
-      const list = JSON.parse(textOf(await orch.callTool({ name: "list_subagents", arguments: {} })));
+      const list: any[] = (
+        (await orch.callTool({ name: "list_subagents", arguments: {} })).structuredContent as any
+      ).subagents;
       assert.equal(list.length, 1);
       assert.equal(list[0].label, "research");
 
@@ -144,7 +146,7 @@ describe("quaestor MCP server", () => {
       const ok = await research.callTool({ name: "pay", arguments: { recipient, amount_usdc: "0.4" } });
       assert.notOk(ok.isError, textOf(ok));
 
-      const rbud = JSON.parse(textOf(await research.callTool({ name: "get_my_budget", arguments: {} })));
+      const rbud: any = (await research.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
       assert.equal(rbud.spent, "0.4");
       assert.equal(rbud.available, "1.6");
     } finally {

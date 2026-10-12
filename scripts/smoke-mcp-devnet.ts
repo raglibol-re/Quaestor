@@ -94,7 +94,7 @@ async function main() {
     const tools = await mcp.listTools();
     assert(tools.tools.length === 9, `exposes 9 tools (got ${tools.tools.length})`);
 
-    const bud = JSON.parse(textOf(await mcp.callTool({ name: "get_my_budget", arguments: {} })));
+    const bud: any = (await mcp.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
     assert(bud.available === "6" && bud.label === "orchestrator", `get_my_budget -> available 6 (got ${bud.available})`);
 
     const created = await mcp.callTool({ name: "create_subagent_budget", arguments: { label: "research", amount_usdc: "2", per_tx_limit_usdc: "0.5" } });

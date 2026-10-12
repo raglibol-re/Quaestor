@@ -1,4 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
+import { toBaseUnits } from "./amounts";
 import { USDC_DECIMALS } from "./constants";
 import { decodeLabel, statusName } from "./util";
 import { type BudgetTreeNode } from "./tree";
@@ -154,5 +155,66 @@ export function renderBudgetTree(root: BudgetTreeNode, opts: { rootLabel?: strin
     });
   };
   walk(root.children, 1, "");
+  return lines.join("\n");
+}
+
+/** Brand money from a human decimal-USDC string (e.g. "1.6" -> "1.60 USDC"). */
+function usdcDec(decimal: string): string {
+  return formatUSDC(toBaseUnits(decimal), { unit: true });
+}
+
+/**
+ * A single budget as returned, chain-neutrally, by an MCP `get_my_budget`
+ * (SolanaOps/EvmOps). Amounts are human decimal-USDC strings; status is one of
+ * active | frozen | revoked. Extra backend fields are ignored.
+ */
+export interface BudgetView {
+  label: string;
+  status: string;
+  depth?: number;
+  allocated: string;
+  spent: string;
+  reservedForChildren?: string;
+  available: string;
+  perTxLimit?: string | null;
+  dailyLimit?: string | null;
+}
+
+/** A direct subagent as returned by an MCP `list_subagents`. */
+export interface SubagentView {
+  label: string;
+  status: string;
+  allocated: string;
+  spent?: string;
+  available?: string;
+}
+
+/** The agent's own budget as a branded text block (brand plain-text surface). */
+export function renderBudget(v: BudgetView): string {
+  const head =
+    v.depth != null
+      ? `BUDGET  ${v.label}  [${depthNumeral(v.depth + 1)}]  ${v.status}`
+      : `BUDGET  ${v.label}  ${v.status}`;
+  const rows: ResultRow[] = [
+    { key: "allocated", value: usdcDec(v.allocated), align: "right" },
+    { key: "spent", value: usdcDec(v.spent), align: "right" },
+  ];
+  if (v.reservedForChildren != null)
+    rows.push({ key: "reserved", value: usdcDec(v.reservedForChildren), align: "right" });
+  rows.push({ key: "available", value: usdcDec(v.available), align: "right" });
+  if (v.perTxLimit) rows.push({ key: "per-tx ≤", value: usdcDec(v.perTxLimit), align: "right" });
+  if (v.dailyLimit) rows.push({ key: "daily ≤", value: usdcDec(v.dailyLimit), align: "right" });
+  return `${head}\n${renderRows(rows)}`;
+}
+
+/** Direct subagents as a branded list with ├─ └─ connectors. */
+export function renderBudgetList(opts: { title: string; items: SubagentView[] }): string {
+  const title = opts.title.toUpperCase();
+  if (!opts.items.length) return `${title}  (0)\n  No agents yet. Delegate a budget to start.`;
+  const lines = [`${title}  (${opts.items.length})`];
+  opts.items.forEach((it, i) => {
+    const branch = i === opts.items.length - 1 ? "└─" : "├─";
+    lines.push(`${branch} ${it.label}  ${usdcDec(it.allocated)}  ${it.status}`);
+  });
   return lines.join("\n");
 }
