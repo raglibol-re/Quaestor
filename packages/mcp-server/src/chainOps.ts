@@ -62,3 +62,30 @@ export interface ChainOps {
   /** Turn a raw chain error into a human-readable message for the tool result. */
   toFriendlyError(e: unknown): string;
 }
+
+/**
+ * The numbers behind a budget-limit refusal, as base-unit integer strings
+ * (6-dp USDC) so the brand text surface can render aligned requested/available/
+ * limit rows (see brand/README.md "plain-text tool results").
+ */
+export interface RejectionDetails {
+  requested?: string;
+  available?: string;
+  limit?: string;
+}
+
+/**
+ * Thrown by a backend when a spend is rejected onchain and the governing
+ * numbers are known. `message` stays the same human string `toFriendlyError`
+ * would produce (so existing callers are unaffected); `details` carries the
+ * numbers for the richer brand rendering.
+ */
+export class BudgetRejection extends Error {
+  constructor(
+    message: string,
+    readonly details: RejectionDetails = {}
+  ) {
+    super(message);
+    this.name = "BudgetRejection";
+  }
+}

@@ -1,4 +1,5 @@
 import { availableOf, toBaseUnits } from "@quaestor/sdk";
+import { BudgetRejection } from "./chainOps";
 import type {
   ChainOps,
   CreateSubagentParams,
@@ -66,7 +67,16 @@ export class SolanaOps implements ChainOps {
       } catch {
         /* ignore */
       }
-      throw new Error(friendlyError(e, nums));
+      const message = friendlyError(e, nums);
+      if (nums) {
+        const limit = nums.perTxLimit ?? nums.periodLimit ?? null;
+        throw new BudgetRejection(message, {
+          requested: nums.attempted?.toString(),
+          available: nums.available?.toString(),
+          limit: limit ? limit.toString() : undefined,
+        });
+      }
+      throw new Error(message);
     }
   }
 

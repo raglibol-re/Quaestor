@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { baseUnitsString, formatUSDC, renderResult, toBaseUnits } from "@quaestor/sdk";
+import { baseUnitsString, formatUSDC, renderRejection, renderResult, toBaseUnits } from "@quaestor/sdk";
 import { z } from "zod";
-import type { ChainOps } from "./chainOps";
+import { BudgetRejection, type ChainOps } from "./chainOps";
 import { buildChainOps } from "./opsFactory";
 import { x402Fetch } from "./x402";
 
@@ -36,8 +36,21 @@ function errResult(text: string) {
 function jsonResult(obj: unknown) {
   return okResult(JSON.stringify(obj, null, 2), isRecord(obj) ? obj : { result: obj });
 }
-// A budget-limit refusal, in the brand's REJECTED-onchain shape.
+// A budget-limit refusal, in the brand's REJECTED-onchain shape. When the
+// backend surfaced the governing numbers (BudgetRejection), show aligned
+// requested/available/limit rows; otherwise just the reason.
 function rejected(ops: ChainOps, e: unknown) {
+  if (e instanceof BudgetRejection && (e.details.requested || e.details.available || e.details.limit)) {
+    return errResult(
+      renderRejection({
+        reason: e.message,
+        requested: e.details.requested,
+        available: e.details.available,
+        limit: e.details.limit,
+        next: "reduce the amount, or request a larger budget from your parent agent.",
+      })
+    );
+  }
   return errResult(
     renderResult({
       state: "REJECTED",
