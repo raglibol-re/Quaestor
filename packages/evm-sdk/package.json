@@ -1,0 +1,21 @@
+{
+  "name": "@quaestor/evm-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript EVM SDK (viem) for the Quaestor on-chain budget contract, with ERC-2771 gasless meta-transactions",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rimraf dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "viem": "^2.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.4",
+    "typescript": "^5.6.3"
+  }
+}
