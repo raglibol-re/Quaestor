@@ -4,7 +4,8 @@
   "private": true,
   "description": "MCP server + owner CLI for Quaestor agent budgets",
   "license": "MIT",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "quaestor-mcp": "dist/server.js",
     "quaestor": "dist/cli.js"
@@ -12,6 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
+    "start:http": "node dist/httpDev.js",
     "cli": "node dist/cli.js"
   },
   "dependencies": {
