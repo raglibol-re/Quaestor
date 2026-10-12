@@ -19,7 +19,7 @@ test-ledger
 *.pem
 
 # --- EVM / Foundry (contracts/) ---
-contracts/lib/
+# lib/ is vendored (nested .git removed) so contracts/ is self-contained — keep it tracked.
 contracts/cache/
 contracts/out/
 contracts/broadcast/
