@@ -77,6 +77,17 @@ contract QuaestorTest is Test {
     bytes32 internal researchKey;
     bytes32 internal scraperKey;
 
+    // mirror of Quaestor.Spent so vm.expectEmit can match the on-chain topic + data
+    event Spent(
+        bytes32 indexed project,
+        bytes32 budget,
+        address agent,
+        address recipient,
+        uint256 amount,
+        bytes32 taskId,
+        bytes32 reasonHash
+    );
+
     function _al() internal pure returns (address[] memory a) {
         a = new address[](0);
     }
@@ -127,11 +138,11 @@ contract QuaestorTest is Test {
 
         // spend on each level
         vm.prank(orchestrator);
-        q.spend(orchKey, RECIP, 1_000_000);
+        q.spend(orchKey, RECIP, 1_000_000, bytes32(0), bytes32(0));
         vm.prank(research);
-        q.spend(researchKey, RECIP, 500_000);
+        q.spend(researchKey, RECIP, 500_000, bytes32(0), bytes32(0));
         vm.prank(scraper);
-        q.spend(scraperKey, RECIP, 500_000);
+        q.spend(scraperKey, RECIP, 500_000, bytes32(0), bytes32(0));
 
         // balances
         assertEq(q.getProject(projectKey).vaultBalance, 8_000_000, "vault");
@@ -151,7 +162,7 @@ contract QuaestorTest is Test {
     function test_PerTxLimitExceeded() public {
         vm.prank(research);
         vm.expectRevert(Quaestor.PerTxLimitExceeded.selector);
-        q.spend(researchKey, RECIP, 3_000_000);
+        q.spend(researchKey, RECIP, 3_000_000, bytes32(0), bytes32(0));
     }
 
     // ---- period limit + snap-to-now reset ----------------------------------
@@ -164,16 +175,16 @@ contract QuaestorTest is Test {
         );
 
         vm.startPrank(periodAgent);
-        q.spend(pKey, RECIP, 600_000);
-        q.spend(pKey, RECIP, 400_000); // periodSpent == 1_000_000 == limit
+        q.spend(pKey, RECIP, 600_000, bytes32(0), bytes32(0));
+        q.spend(pKey, RECIP, 400_000, bytes32(0), bytes32(0)); // periodSpent == 1_000_000 == limit
         vm.expectRevert(Quaestor.PeriodLimitExceeded.selector);
-        q.spend(pKey, RECIP, 1);
+        q.spend(pKey, RECIP, 1, bytes32(0), bytes32(0));
         vm.stopPrank();
 
         // advance past the window -> snap-to-now reset
         vm.warp(block.timestamp + 3601);
         vm.prank(periodAgent);
-        q.spend(pKey, RECIP, 500_000); // succeeds after reset
+        q.spend(pKey, RECIP, 500_000, bytes32(0), bytes32(0)); // succeeds after reset
 
         assertEq(q.getBudget(pKey).periodSpent, 500_000, "periodSpent after reset");
         assertEq(q.getBudget(pKey).spent, 1_500_000, "total spent");
@@ -186,13 +197,13 @@ contract QuaestorTest is Test {
 
         vm.prank(research);
         vm.expectRevert(Quaestor.AncestorNotActive.selector);
-        q.spend(researchKey, RECIP, 100_000);
+        q.spend(researchKey, RECIP, 100_000, bytes32(0), bytes32(0));
 
         vm.prank(owner);
         q.setStatus(orchKey, false); // unfreeze
 
         vm.prank(research);
-        q.spend(researchKey, RECIP, 100_000); // succeeds
+        q.spend(researchKey, RECIP, 100_000, bytes32(0), bytes32(0)); // succeeds
         assertEq(q.getBudget(researchKey).spent, 100_000, "research spent after unfreeze");
     }
 
@@ -203,7 +214,7 @@ contract QuaestorTest is Test {
         q.agentSetStatus(researchKey, true);
         vm.prank(research);
         vm.expectRevert(Quaestor.NotActive.selector);
-        q.spend(researchKey, RECIP, 100_000);
+        q.spend(researchKey, RECIP, 100_000, bytes32(0), bytes32(0));
 
         // unrelated address cannot
         vm.prank(outsider);
@@ -215,7 +226,7 @@ contract QuaestorTest is Test {
         q.agentSetStatus(scraperKey, true);
         vm.prank(scraper);
         vm.expectRevert(Quaestor.NotActive.selector);
-        q.spend(scraperKey, RECIP, 100_000);
+        q.spend(scraperKey, RECIP, 100_000, bytes32(0), bytes32(0));
     }
 
     // ---- allowlist ---------------------------------------------------------
@@ -229,13 +240,13 @@ contract QuaestorTest is Test {
 
         // spend to allowed recipient ok
         vm.prank(payer);
-        q.spend(payerKey, RECIP_A, 100_000);
+        q.spend(payerKey, RECIP_A, 100_000, bytes32(0), bytes32(0));
         assertEq(token.balanceOf(RECIP_A), 100_000, "recipA received");
 
         // spend to other recipient rejected
         vm.prank(payer);
         vm.expectRevert(Quaestor.RecipientNotAllowed.selector);
-        q.spend(payerKey, RECIP_B, 100_000);
+        q.spend(payerKey, RECIP_B, 100_000, bytes32(0), bytes32(0));
 
         // subset enforcement on allocateChild: [RECIP_B] not subset of [RECIP_A]
         address sub = makeAddr("subAgent");
@@ -273,7 +284,7 @@ contract QuaestorTest is Test {
     function test_Reclaim_UnusedReturnsToParent() public {
         // scraper spends 0.5e6 first
         vm.prank(scraper);
-        q.spend(scraperKey, RECIP, 500_000);
+        q.spend(scraperKey, RECIP, 500_000, bytes32(0), bytes32(0));
 
         // owner revokes scraper, then reclaim
         vm.prank(owner);
@@ -344,7 +355,19 @@ contract QuaestorTest is Test {
     function test_Spend_UnauthorizedAgent() public {
         vm.prank(outsider);
         vm.expectRevert(Quaestor.Unauthorized.selector);
-        q.spend(researchKey, RECIP, 100_000);
+        q.spend(researchKey, RECIP, 100_000, bytes32(0), bytes32(0));
+    }
+
+    // ---- spend records on-chain attribution (taskId + reasonHash) ----------
+    function test_Spend_EmitsAttribution() public {
+        bytes32 taskId = keccak256("task-42");
+        bytes32 reasonHash = keccak256("buy dataset");
+
+        vm.expectEmit(true, false, false, true, address(q));
+        emit Spent(projectKey, orchKey, orchestrator, RECIP, 1_000_000, taskId, reasonHash);
+
+        vm.prank(orchestrator);
+        q.spend(orchKey, RECIP, 1_000_000, taskId, reasonHash);
     }
 
     function test_Allocate_InsufficientAvailable() public {
@@ -458,7 +481,7 @@ contract Handler is Test {
         if (avail == 0) return;
         amt = bound(amt, 1, avail);
         vm.prank(b.agent);
-        try q.spend(k, RECIP, amt) {} catch {}
+        try q.spend(k, RECIP, amt, bytes32(0), bytes32(0)) {} catch {}
     }
 
     function hdl_reclaim(uint256 cSeed) external {

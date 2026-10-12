@@ -111,7 +111,7 @@ contract Quaestor is ERC2771Context {
     event BudgetAllocated(
         bytes32 indexed project, bytes32 parent, bytes32 child, address agent, uint256 amount, uint8 depth
     );
-    event Spent(bytes32 indexed project, bytes32 budget, address agent, address recipient, uint256 amount);
+    event Spent(bytes32 indexed project, bytes32 budget, address agent, address recipient, uint256 amount, bytes32 taskId, bytes32 reasonHash);
     event StatusChanged(bytes32 indexed project, bytes32 budget, uint8 status);
     event Reclaimed(bytes32 indexed project, bytes32 parent, bytes32 child, uint256 amount);
     event Withdrawn(bytes32 indexed project, address to, uint256 amount);
@@ -426,7 +426,7 @@ contract Quaestor is ERC2771Context {
     // =====================================================================
     // 5. spend
     // =====================================================================
-    function spend(bytes32 budgetKey, address recipient, uint256 amount) external {
+    function spend(bytes32 budgetKey, address recipient, uint256 amount, bytes32 taskId, bytes32 reasonHash) external {
         Budget storage b = budgets[budgetKey];
 
         if (b.agent != _msgSender()) revert Unauthorized();
@@ -459,7 +459,7 @@ contract Quaestor is ERC2771Context {
         }
         IERC20(p.mint).safeTransfer(recipient, amount);
 
-        emit Spent(b.project, budgetKey, b.agent, recipient, amount);
+        emit Spent(b.project, budgetKey, b.agent, recipient, amount, taskId, reasonHash);
     }
 
     // =====================================================================

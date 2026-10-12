@@ -6,6 +6,7 @@ import {
   fromBaseUnits,
   getAddress,
   keccak256,
+  labelToBytes32,
   statusName,
   toBaseUnits,
 } from "@quaestor/evm-sdk";
@@ -111,6 +112,7 @@ export class EvmOps implements ChainOps {
   async pay(recipient: string, amountUsdc: string, attribution?: Attribution): Promise<PayResult> {
     const to = getAddress(recipient);
     const amount = toBaseUnits(amountUsdc);
+    const reason = attribution?.reason?.trim();
     await this.preflight("spend", [this.ctx.agentBudgetKey, to, amount]);
     const hash = await this.ctx.client.spendForwarded({
       agentAccount: this.ctx.agentAccount,
@@ -118,6 +120,10 @@ export class EvmOps implements ChainOps {
       budgetKey: this.ctx.agentBudgetKey,
       recipient: to,
       amount,
+      taskId: attribution?.taskId?.trim()
+        ? labelToBytes32(attribution.taskId.trim().slice(0, 31))
+        : undefined,
+      reasonHash: reason ? keccak256(Buffer.from(reason, "utf8")) : undefined,
     });
     if (hasAttribution(attribution)) {
       const reason = attribution.reason?.trim();

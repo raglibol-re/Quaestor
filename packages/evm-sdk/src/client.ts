@@ -407,13 +407,22 @@ export class QuaestorEvmClient {
     budgetKey: Hex;
     recipient: Address;
     amount: bigint;
+    taskId?: Hex;
+    reasonHash?: Hex;
     gas?: bigint;
   }): Promise<Hex> {
+    const ZERO32 = `0x${"0".repeat(64)}` as Hex;
     return this.forward({
       agentAccount: params.agentAccount,
       relayerWalletClient: params.relayerWalletClient,
       fn: "spend",
-      args: [params.budgetKey, params.recipient, params.amount],
+      args: [
+        params.budgetKey,
+        params.recipient,
+        params.amount,
+        params.taskId ?? ZERO32,
+        params.reasonHash ?? ZERO32,
+      ],
       gas: params.gas,
     });
   }
