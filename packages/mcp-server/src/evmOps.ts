@@ -55,6 +55,18 @@ export class EvmOps implements ChainOps {
     return `evm(${this.ctx.config.chain}) agent="${this.ctx.config.agent}" (${this.ctx.agentAccount.address}) contract=${this.ctx.config.contract} rpc=${this.ctx.config.rpcUrl}`;
   }
 
+  networkLabel(): string {
+    const { chain, chainId } = this.ctx.config;
+    if (chainId === 31337) return "anvil"; // local anvil default chain id
+    if (chain === "base") return "base-sepolia";
+    if (chain === "tempo") return "tempo-testnet";
+    return "anvil";
+  }
+
+  payerAddress(): string {
+    return this.ctx.agentAccount.address;
+  }
+
   /**
    * Simulate the inner Quaestor call (msg.sender = agent) against the Quaestor ABI so on-chain
    * reverts surface as clean, decodable custom errors — instead of the opaque data a reverted

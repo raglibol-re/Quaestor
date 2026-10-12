@@ -44,6 +44,13 @@ export interface ReclaimResult {
 export interface ChainOps {
   /** One-line description for the startup log (e.g. "solana agent <pubkey>"). */
   describe(): string;
+  /**
+   * x402 network label for this backend (e.g. "base-sepolia", "tempo-testnet",
+   * "solana-devnet", "anvil"). Used to match an x402 402-response `accepts` entry.
+   */
+  networkLabel(): string;
+  /** This agent's own address (the x402 payer), as a chain-native string. */
+  payerAddress(): string;
   getMyBudget(): Promise<unknown>;
   pay(recipient: string, amountUsdc: string): Promise<PayResult>;
   createSubagentBudget(p: CreateSubagentParams): Promise<CreateSubagentResult>;

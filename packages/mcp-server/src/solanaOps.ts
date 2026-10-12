@@ -25,6 +25,18 @@ export class SolanaOps implements ChainOps {
     return `solana agent="${this.ctx.config.agent}" (${this.ctx.agentPubkey.toBase58()}) project=${this.ctx.config.project.toBase58()} rpc=${this.ctx.config.rpcUrl}`;
   }
 
+  networkLabel(): string {
+    const rpc = (this.ctx.config.rpcUrl || "").toLowerCase();
+    if (rpc.includes("mainnet")) return "solana-mainnet";
+    if (rpc.includes("testnet")) return "solana-testnet";
+    if (rpc.includes("localhost") || rpc.includes("127.0.0.1")) return "solana-localnet";
+    return "solana-devnet";
+  }
+
+  payerAddress(): string {
+    return this.ctx.agentPubkey.toBase58();
+  }
+
   private dbg(m: string) {
     if (process.env.QUAESTOR_DEBUG) console.error(`[op] ${m} @${Date.now()}`);
   }

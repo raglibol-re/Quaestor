@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { ChainOps } from "./chainOps";
 import { buildChainOps } from "./opsFactory";
+import { x402Fetch } from "./x402";
 
 function textResult(text: string) {
   return { content: [{ type: "text" as const, text }] };
@@ -175,6 +176,40 @@ function registerTools(server: McpServer, ops: ChainOps) {
     async ({ limit }) => {
       try {
         return jsonResult(await ops.getHistory(limit ?? 10));
+      } catch (e) {
+        return errResult(ops.toFriendlyError(e));
+      }
+    }
+  );
+
+  server.registerTool(
+    "pay_x402",
+    {
+      title: "Pay for a paywalled HTTP resource (x402)",
+      description:
+        "Fetch an HTTP URL that may require payment via the x402 protocol. On an HTTP 402 response, " +
+        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR BUDGET (budget-enforced on-chain: " +
+        "per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this " +
+        "budget or any ancestor), then retry with the on-chain payment proof and return the resource. " +
+        "If a budget limit rejects the payment, the resource is NOT fetched and the reason is returned.",
+      inputSchema: {
+        url: z.string().describe("The URL of the (possibly paywalled) resource to fetch."),
+      },
+    },
+    async ({ url }) => {
+      try {
+        const r = await x402Fetch(ops, url);
+        const bodyStr =
+          typeof r.body === "string" ? r.body : JSON.stringify(r.body, null, 2);
+        if (r.payment) {
+          return textResult(
+            `Paid ${r.payment.amount} USDC to ${r.payment.payTo} for ${url}. ` +
+              `Proof: ${r.payment.txHash}\n\nResource (HTTP ${r.status}):\n${bodyStr}`
+          );
+        }
+        return textResult(
+          `Fetched ${url} (HTTP ${r.status}) — no payment was required.\n\n${bodyStr}`
+        );
       } catch (e) {
         return errResult(ops.toFriendlyError(e));
       }
