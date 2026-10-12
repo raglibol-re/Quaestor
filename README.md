@@ -20,6 +20,7 @@ and **Hyperliquid** (`QuaestorDesk`, a trading-risk mandate), all driven by the 
 
 | | |
 |---|---|
+| **Landing & MCP setup** | https://quaestor-landing.vercel.app |
 | **Dashboard (live mandate tree)** | https://quaestor-dashboard.vercel.app |
 | **Solana program (devnet)** | [`FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP`](https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet) |
 | **Solana demo project (devnet)** | [`Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr`](https://explorer.solana.com/address/Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr?cluster=devnet) |

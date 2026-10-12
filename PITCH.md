@@ -174,6 +174,7 @@ One story per chain, no overlap — each plays to what that chain is best at:
   dashboard + policy engine, and a take-rate on mandated agent spend, sitting atop Altitude-style
   stablecoin accounts.
 - **Links:**
+  - Landing & MCP setup: https://quaestor-landing.vercel.app
   - Dashboard: https://quaestor-dashboard.vercel.app
   - Solana program (devnet): https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet
   - EVM contract (Base Sepolia): https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43
