@@ -1,8 +1,9 @@
-import { AnchorProvider, Wallet } from "@coral-xyz/anchor";
+import { Wallet } from "@coral-xyz/anchor";
 import { QuaestorClient, findBudgetPda } from "@quaestor/sdk";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import type { McpConfig } from "./config";
 import { loadAgent } from "./keystore";
+import { PollingProvider } from "./provider";
 
 export interface AgentContext {
   config: McpConfig;
@@ -17,8 +18,10 @@ export interface AgentContext {
 export function buildAgentContext(config: McpConfig): AgentContext {
   const connection = new Connection(config.rpcUrl, "confirmed");
   // The relayer is the fee payer / provider wallet; the agent co-signs as authority.
-  const provider = new AnchorProvider(connection, new Wallet(config.relayer), {
+  // PollingProvider confirms via getSignatureStatuses (no websocket) so tool calls never hang.
+  const provider = new PollingProvider(connection, new Wallet(config.relayer), {
     commitment: "confirmed",
+    preflightCommitment: "confirmed",
   });
   const client = QuaestorClient.fromProvider(provider);
   const agentKeypair = loadAgent(config.agent, config.passphrase);

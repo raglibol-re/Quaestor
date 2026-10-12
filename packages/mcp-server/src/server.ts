@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { availableOf, toBaseUnits } from "@quaestor/sdk";
 import { z } from "zod";
-import { loadMcpConfig } from "./config";
-import { buildAgentContext, type AgentContext } from "./context";
-import { friendlyError } from "./errors";
-import * as ops from "./operations";
+import type { ChainOps } from "./chainOps";
+import { buildChainOps } from "./opsFactory";
 
 function textResult(text: string) {
   return { content: [{ type: "text" as const, text }] };
@@ -18,7 +15,7 @@ function jsonResult(obj: unknown) {
   return textResult(JSON.stringify(obj, null, 2));
 }
 
-function registerTools(server: McpServer, ctx: AgentContext) {
+function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
     "get_my_budget",
     {
@@ -29,9 +26,9 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async () => {
       try {
-        return jsonResult(await ops.getMyBudget(ctx));
+        return jsonResult(await ops.getMyBudget());
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -50,23 +47,10 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async ({ recipient, amount_usdc }) => {
       try {
-        const r = await ops.pay(ctx, recipient, amount_usdc);
+        const r = await ops.pay(recipient, amount_usdc);
         return textResult(`Paid ${r.amount} USDC to ${r.recipient}.\nSignature: ${r.signature}`);
       } catch (e) {
-        let nums;
-        try {
-          const b = await ctx.client.getBudget(ctx.agentBudget);
-          nums = {
-            attempted: toBaseUnits(amount_usdc),
-            available: availableOf(b),
-            perTxLimit: b.perTxLimit,
-            periodLimit: b.periodLimit,
-            periodSpent: b.periodSpent,
-          };
-        } catch {
-          /* ignore */
-        }
-        return errResult(friendlyError(e, nums));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -89,7 +73,7 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async (args) => {
       try {
-        const r = await ops.createSubagentBudget(ctx, {
+        const r = await ops.createSubagentBudget({
           label: args.label,
           amountUsdc: args.amount_usdc,
           perTxLimitUsdc: args.per_tx_limit_usdc,
@@ -104,7 +88,7 @@ function registerTools(server: McpServer, ctx: AgentContext) {
             `MCP config snippet for the sub-agent:\n${r.configSnippet}`
         );
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -118,9 +102,9 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async () => {
       try {
-        return jsonResult(await ops.listSubagents(ctx));
+        return jsonResult(await ops.listSubagents());
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -130,7 +114,7 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     {
       title: "Freeze a sub-agent",
       description:
-        "Freeze (or unfreeze) a sub-agent, instantly blocking it and its whole sub-tree. Requires project-owner authority.",
+        "Freeze (or unfreeze) one of your sub-agents, instantly blocking it and its whole sub-tree. Enforced on-chain — you may do this to any of your own descendants (ancestor-agent authority).",
       inputSchema: {
         label: z.string().describe("Label of the sub-agent."),
         unfreeze: z.boolean().optional().describe("Set true to unfreeze instead of freeze."),
@@ -138,10 +122,10 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async ({ label, unfreeze }) => {
       try {
-        const r = await ops.freezeSubagent(ctx, label, !unfreeze);
+        const r = await ops.freezeSubagent(label, !unfreeze);
         return textResult(`Sub-agent "${label}" is now ${r.status}.\nSignature: ${r.signature}`);
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -155,10 +139,10 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async ({ label }) => {
       try {
-        const r = await ops.revokeSubagent(ctx, label);
+        const r = await ops.revokeSubagent(label);
         return textResult(`Sub-agent "${label}" revoked.\nSignature: ${r.signature}`);
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -173,10 +157,10 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async ({ label }) => {
       try {
-        const r = await ops.reclaimSubagent(ctx, label);
+        const r = await ops.reclaimSubagent(label);
         return textResult(`Reclaimed ${r.reclaimed} USDC from "${label}".\nSignature: ${r.signature}`);
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
@@ -190,22 +174,19 @@ function registerTools(server: McpServer, ctx: AgentContext) {
     },
     async ({ limit }) => {
       try {
-        return jsonResult(await ops.getHistory(ctx, limit ?? 10));
+        return jsonResult(await ops.getHistory(limit ?? 10));
       } catch (e) {
-        return errResult(friendlyError(e));
+        return errResult(ops.toFriendlyError(e));
       }
     }
   );
 }
 
 async function main() {
-  const config = loadMcpConfig();
-  const ctx = buildAgentContext(config);
-  console.error(
-    `[quaestor-mcp] agent="${config.agent}" (${ctx.agentPubkey.toBase58()}) project=${config.project.toBase58()} rpc=${config.rpcUrl}`
-  );
+  const ops = await buildChainOps();
+  console.error(`[quaestor-mcp] ${ops.describe()}`);
   const server = new McpServer({ name: "quaestor", version: "0.1.0" });
-  registerTools(server, ctx);
+  registerTools(server, ops);
   await server.connect(new StdioServerTransport());
   console.error("[quaestor-mcp] ready");
 }

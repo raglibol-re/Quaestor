@@ -24,9 +24,11 @@ async function connect(agentName: string): Promise<Client> {
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [serverPath],
+    stderr: "inherit",
     env: {
       PATH: process.env.PATH ?? "",
       HOME: process.env.HOME ?? "",
+      QUAESTOR_DEBUG: process.env.QUAESTOR_DEBUG ?? "",
       QUAESTOR_RPC_URL: process.env.QUAESTOR_RPC_URL!,
       QUAESTOR_PROJECT: process.env.QUAESTOR_PROJECT!,
       QUAESTOR_AGENT: agentName,

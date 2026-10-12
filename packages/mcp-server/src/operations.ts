@@ -9,8 +9,11 @@ import {
 } from "@quaestor/sdk";
 import { PublicKey } from "@solana/web3.js";
 import { join } from "node:path";
+import type { CreateSubagentParams } from "./chainOps";
 import type { AgentContext } from "./context";
 import { createAgent, hasAgent } from "./keystore";
+
+export type { CreateSubagentParams };
 
 const nowSec = () => Math.floor(Date.now() / 1000);
 
@@ -60,16 +63,6 @@ export async function pay(ctx: AgentContext, recipient: string, amountUsdc: stri
     .signers([ctx.agentKeypair])
     .rpc();
   return { signature, recipient: recipientOwner.toBase58(), amount: amountUsdc };
-}
-
-export interface CreateSubagentParams {
-  label: string;
-  amountUsdc: string;
-  perTxLimitUsdc?: string;
-  dailyLimitUsdc?: string;
-  canDelegate?: boolean;
-  expiresInHours?: number;
-  allowlist?: string[];
 }
 
 export async function createSubagentBudget(ctx: AgentContext, p: CreateSubagentParams) {
