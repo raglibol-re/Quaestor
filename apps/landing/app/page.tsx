@@ -1,6 +1,7 @@
 import { Mark } from "@/components/Mark";
 import { CodeBlock } from "@/components/CodeBlock";
 import { ConfigWizard } from "@/components/ConfigWizard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { TOOLS, COMPARISON, LINKS } from "@/lib/data";
 
 const BUILD = `git clone https://github.com/raglibol-re/Quaestor
@@ -51,6 +52,7 @@ export default function Home() {
             <a className="nav-link" href={LINKS.github}>
               GitHub
             </a>
+            <ThemeToggle />
           </div>
         </div>
       </nav>

@@ -389,6 +389,18 @@ a {
 .nav-link:hover {
   color: var(--ink);
 }
+.theme-toggle {
+  font: inherit;
+  font-size: 14px;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  border-color: var(--line-strong);
+}
 @media (max-width: 680px) {
   .nav-link.hide-sm {
     display: none;

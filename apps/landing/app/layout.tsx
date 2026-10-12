@@ -29,8 +29,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="basalt" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
-      <body>{children}</body>
+    <html
+      lang="en"
+      data-theme="basalt"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+    >
+      <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('quaestor-theme');if(t==='travertine'||t==='basalt'){document.documentElement.dataset.theme=t;}}catch(e){}",
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
