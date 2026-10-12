@@ -23,8 +23,8 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quaestor — onchain budgets for AI agents",
-  description: "Hierarchical, onchain-enforced budgets for AI agents. Every agent answers to a budget.",
+  title: "Quaestor — onchain mandates for AI agents",
+  description: "Hierarchical, onchain-enforced spending mandates for AI agents. Give your agent a mandate, not a wallet.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

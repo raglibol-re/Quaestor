@@ -74,14 +74,15 @@ one edit in `server.ts` brands **both** chains.
 
 - **Identity** — `new McpServer({ name:"quaestor", version, title:"Quaestor", icons:[…] })` with
   the app icon inlined as an SVG data URI.
-- **Tool metadata** — brand titles (`Request spend`, `Delegate budget`, `Freeze branch`,
-  `List subagents`, …); `subagent` / `onchain` as one word in every title/description. Tool
-  **names** (`pay`, `create_subagent_budget`, …) are unchanged so existing configs keep working.
+- **Tool metadata** — brand titles (`Request spend`, `Delegate mandate`, `Freeze branch`,
+  `List subagents`, …); `subagent` / `onchain` as one word in every title/description. The two
+  formerly budget-named tools were renamed to `get_my_mandate` / `create_submandate` in the
+  Mandate repositioning; the other seven tool names are unchanged.
 - **Result text** — every result is a CAPS state word + sentence + aligned rows via
   `renderResult`: `APPROVED` / `DELEGATED` / `FROZEN` / `RELEASED` / `REVOKED`. Amounts are
   reformatted with `formatUSDC(toBaseUnits(decimal))` because the ops layer returns decimal
-  strings. `get_my_budget` → `renderBudget`; `list_subagents` → `renderBudgetList`.
-- **Rejections** — a budget-limit refusal renders `REJECTED onchain. <reason>` with aligned
+  strings. `get_my_mandate` → `renderBudget`; `list_subagents` → `renderBudgetList`.
+- **Rejections** — a mandate-limit refusal renders `REJECTED onchain. <reason>` with aligned
   `requested / available / limit` rows and a `Next:` line. The numbers travel from the backend
   via a `BudgetRejection` error (`chainOps.ts`) that `solanaOps.pay` throws (it already computed
   them); EVM falls back to the plain `REJECTED` line. `isError: true` on every refusal.

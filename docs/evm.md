@@ -89,7 +89,7 @@ QUAESTOR_KEYSTORE_PASSPHRASE=<passphrase>
 QUAESTOR_EVM_RELAYER_KEY=0x<relayer-key> # pays gas; forwards agents' signed meta-txns
 ```
 
-The 8 MCP tools (`get_my_budget`, `pay`, `create_subagent_budget`, `list_subagents`,
+The 8 MCP tools (`get_my_mandate`, `pay`, `create_submandate`, `list_subagents`,
 `freeze_subagent`, `revoke_subagent`, `reclaim_subagent`, `get_history`) behave identically to the
 Solana backend; agent actions are gasless (forwarded), owner actions are sent directly.
 

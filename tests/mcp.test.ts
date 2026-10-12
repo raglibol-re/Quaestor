@@ -105,19 +105,19 @@ describe("quaestor MCP server", () => {
     recipient = Keypair.generate().publicKey.toBase58();
   });
 
-  it("orchestrator: budget, delegate, list, pay", async function () {
+  it("orchestrator: mandate, delegate, list, pay", async function () {
     this.timeout(240000);
     const orch = await connect("orchestrator");
     try {
       const tools = await orch.listTools();
       assert.equal(tools.tools.length, 9, "exposes 9 tools");
 
-      const bud: any = (await orch.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
+      const bud: any = (await orch.callTool({ name: "get_my_mandate", arguments: {} })).structuredContent;
       assert.equal(bud.available, "6");
       assert.equal(bud.label, "orchestrator");
 
       const created = await orch.callTool({
-        name: "create_subagent_budget",
+        name: "create_submandate",
         arguments: { label: "research", amount_usdc: "2", per_tx_limit_usdc: "0.5" },
       });
       assert.notOk(created.isError, textOf(created));
@@ -146,7 +146,7 @@ describe("quaestor MCP server", () => {
       const ok = await research.callTool({ name: "pay", arguments: { recipient, amount_usdc: "0.4" } });
       assert.notOk(ok.isError, textOf(ok));
 
-      const rbud: any = (await research.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
+      const rbud: any = (await research.callTool({ name: "get_my_mandate", arguments: {} })).structuredContent;
       assert.equal(rbud.spent, "0.4");
       assert.equal(rbud.available, "1.6");
     } finally {

@@ -23,7 +23,7 @@ export function EvmBudgetTree({ node, depth = 0 }: { node: EvmBudgetNode; depth?
   const allocated = bn(b.allocated);
   const spent = bn(b.spent);
   const reserved = bn(b.reservedForChildren);
-  const label = decodeLabel(b.label) || (depth === 0 ? "vault" : "budget");
+  const label = decodeLabel(b.label) || (depth === 0 ? "vault" : "mandate");
 
   const nodeClass = `q-node${status === "frozen" ? " q-node-frozen" : ""}${
     status === "revoked" ? " q-node-revoked" : ""

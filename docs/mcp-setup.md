@@ -68,7 +68,7 @@ claude mcp add quaestor-orchestrator -- node <ABS_PATH>/packages/mcp-server/dist
 # then set the QUAESTOR_* env in the generated config
 ```
 
-When an agent calls `create_subagent_budget`, the tool returns a ready-to-paste
+When an agent calls `create_submandate`, the tool returns a ready-to-paste
 config snippet for the new sub-agent — spin up a second MCP instance for it the
 same way.
 
@@ -76,13 +76,13 @@ same way.
 
 | Tool | What it does |
 |---|---|
-| `get_my_budget` | available / spent / limits / status / expiry (USDC) |
+| `get_my_mandate` | available / spent / limits / status / expiry (USDC) |
 | `pay` | send USDC to a recipient wallet (enforced on-chain) |
-| `create_subagent_budget` | delegate a sub-budget (limits ≤ your own) + get its config snippet |
+| `create_submandate` | carve a sub-mandate (limits ≤ your own) + get its config snippet |
 | `list_subagents` | direct sub-agents with balances/status |
 | `freeze_subagent` / `revoke_subagent` | stop a sub-tree (owner authority) |
 | `reclaim_subagent` | pull back a revoked/expired sub-agent's unused funds |
-| `get_history` | recent transactions of this budget |
+| `get_history` | recent transactions of this mandate |
 
 ## Notes
 

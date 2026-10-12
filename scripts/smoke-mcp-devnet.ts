@@ -1,7 +1,7 @@
 /**
  * Authoritative MCP-server smoke test on **devnet** (where confirmations work, unlike the WSL
  * local validator). Seeds a project + orchestrator agent, spawns the real MCP server, and drives
- * its tools over stdio: get_my_budget -> create_subagent_budget -> pay (ok) -> pay (over per-tx
+ * its tools over stdio: get_my_mandate -> create_submandate -> pay (ok) -> pay (over per-tx
  * limit -> rejected). Validates the ChainOps refactor + the PollingProvider end-to-end.
  *
  * Env: QUAESTOR_RPC_URL (devnet RPC), QUAESTOR_OWNER_KEYPAIR (default ~/.config/solana/id.json).
@@ -94,17 +94,17 @@ async function main() {
     const tools = await mcp.listTools();
     assert(tools.tools.length === 9, `exposes 9 tools (got ${tools.tools.length})`);
 
-    const bud: any = (await mcp.callTool({ name: "get_my_budget", arguments: {} })).structuredContent;
-    assert(bud.available === "6" && bud.label === "orchestrator", `get_my_budget -> available 6 (got ${bud.available})`);
+    const bud: any = (await mcp.callTool({ name: "get_my_mandate", arguments: {} })).structuredContent;
+    assert(bud.available === "6" && bud.label === "orchestrator", `get_my_mandate -> available 6 (got ${bud.available})`);
 
-    const created = await mcp.callTool({ name: "create_subagent_budget", arguments: { label: "research", amount_usdc: "2", per_tx_limit_usdc: "0.5" } });
-    assert(!created.isError, "create_subagent_budget research (2 USDC, 0.5/tx)");
+    const created = await mcp.callTool({ name: "create_submandate", arguments: { label: "research", amount_usdc: "2", per_tx_limit_usdc: "0.5" } });
+    assert(!created.isError, "create_submandate research (2 USDC, 0.5/tx)");
 
     const recipient = Keypair.generate().publicKey.toBase58();
     const paid = await mcp.callTool({ name: "pay", arguments: { recipient, amount_usdc: "0.4" } });
     assert(!paid.isError, "pay 0.4 USDC succeeds (gasless; relayer paid)");
 
-    const over = await mcp.callTool({ name: "create_subagent_budget", arguments: { label: "toobig", amount_usdc: "9" } });
+    const over = await mcp.callTool({ name: "create_submandate", arguments: { label: "toobig", amount_usdc: "9" } });
     assert(!!over.isError && /available|insufficient/i.test(textOf(over)), "over-allocate 9 USDC rejected by available balance");
 
     console.log("\n  MCP server verified END-TO-END on devnet. ✅");

@@ -63,7 +63,7 @@ program
 
 program
   .command("init")
-  .description("Create a project (vault + root budget)")
+  .description("Create a project (vault + root mandate)")
   .requiredOption("--mint <pubkey>")
   .option("--project-id <n>", "project id", "1")
   .option("--label <s>", "label", "quaestor")
@@ -80,7 +80,7 @@ program
     const p = await client.getProject(project);
     console.log(`project:     ${project.toBase58()}`);
     console.log(`vault:       ${p.vault.toBase58()}`);
-    console.log(`root budget: ${p.rootBudget.toBase58()}`);
+    console.log(`root mandate: ${p.rootBudget.toBase58()}`);
     console.log(`owner:       ${owner.publicKey.toBase58()}`);
     console.log(`signature:   ${sig}`);
   });
@@ -105,13 +105,13 @@ program
 
 program
   .command("tree")
-  .description("Print the budget tree of a project")
+  .description("Print the mandate tree of a project")
   .requiredOption("--project <pubkey>")
   .action(async (opts) => {
     const owner = ownerKeypair();
     const { client } = makeClient(owner);
     const root = await client.fetchBudgetTree(new PublicKey(opts.project));
-    if (!root) return console.log("(no budgets)");
+    if (!root) return console.log("(no mandates)");
     const print = (n: BudgetTreeNode, depth: number) => {
       const a = n.account;
       const pad = "  ".repeat(depth);
@@ -127,9 +127,9 @@ program
 
 program
   .command("allocate")
-  .description("Allocate a child budget (owner authority)")
+  .description("Allocate a child mandate (owner authority)")
   .requiredOption("--project <pubkey>")
-  .requiredOption("--parent <budget pubkey>")
+  .requiredOption("--parent <mandate pubkey>")
   .requiredOption("--agent <child agent pubkey>")
   .requiredOption("--amount <usdc>")
   .option("--label <s>", "label", "agent")
@@ -157,13 +157,13 @@ program
       })
       .rpc();
     const [child] = findBudgetPda(project, agent);
-    console.log(`child budget: ${child.toBase58()}`);
+    console.log(`child mandate: ${child.toBase58()}`);
     console.log(`signature:    ${sig}`);
   });
 
 program
   .command("freeze")
-  .description("Freeze (or unfreeze) a budget (owner only)")
+  .description("Freeze (or unfreeze) a mandate (owner only)")
   .requiredOption("--project <pubkey>")
   .requiredOption("--budget <pubkey>")
   .option("--unfreeze", "unfreeze instead")
@@ -178,7 +178,7 @@ program
 
 program
   .command("revoke")
-  .description("Revoke a budget (owner only)")
+  .description("Revoke a mandate (owner only)")
   .requiredOption("--project <pubkey>")
   .requiredOption("--budget <pubkey>")
   .action(async (opts) => {

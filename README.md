@@ -162,9 +162,9 @@ docs/                  mcp-setup.md, devnet.md, evm.md
 
 ### MCP tools (what an agent sees)
 
-`get_my_budget` · `pay` · `create_subagent_budget` · `list_subagents` ·
+`get_my_mandate` · `pay` · `create_submandate` · `list_subagents` ·
 `freeze_subagent` · `revoke_subagent` · `reclaim_subagent` · `get_history` ·
-`pay_x402` (pay for a paywalled HTTP resource straight from the budget)
+`pay_x402` (pay for a paywalled HTTP resource straight from the mandate)
 
 Amounts are in decimal USDC; errors are human-readable (`"Per-transaction limit exceeded:
 limit 0.50 USDC"`). The agent's private key lives in an encrypted local keystore

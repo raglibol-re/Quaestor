@@ -20,7 +20,7 @@ type Chain = "solana" | "evm";
 const ACTION_MSG: Record<NodeAction, string> = {
   freeze: "Branch frozen.",
   unfreeze: "Branch unfrozen.",
-  revoke: "Budget revoked onchain.",
+  revoke: "Mandate revoked onchain.",
   reclaim: "Funds reclaimed.",
 };
 
@@ -163,7 +163,7 @@ export default function Page() {
         <div className="brand">
           <Mark className="brand-mark" />
           <h1 className="wordmark">Quaestor</h1>
-          <span className="tagline">Onchain budgets for AI agents.</span>
+          <span className="tagline">Onchain spending mandates for AI agents.</span>
         </div>
         <div className="controls">
           {EVM_ENABLED && (
@@ -198,7 +198,7 @@ export default function Page() {
 
       <section className="summary">
         <div className="stat">
-          <div className="label">Total budget</div>
+          <div className="label">Total allocated</div>
           <div className="v">
             {stats ? <Amount value={stats.allocated} size="lg" /> : <span className="amount-lg">—</span>}
           </div>
@@ -226,15 +226,15 @@ export default function Page() {
       <div className="layout">
         <div className="panel">
           <div className="panel-title label">
-            Budget tree{chain === "solana" && canManage ? " · you are the owner" : ""}
+            Mandate tree{chain === "solana" && canManage ? " · you are the owner" : ""}
             {chain === "evm" ? ` · ${EVM.label} (read-only)` : ""}
           </div>
           {error && <div className="empty">{error}</div>}
           {!error && !activeTree && (
             <div className="empty">
               {chain === "evm"
-                ? "No budgets found for the configured EVM project."
-                : "Enter a project address to load its budget tree."}
+                ? "No mandates found for the configured EVM project."
+                : "Enter a project address to load its mandate tree."}
             </div>
           )}
           {chain === "solana" && tree && (

@@ -36,7 +36,7 @@ export function BudgetNode({
   const spent = a.spent as BN;
   const reserved = a.reservedForChildren as BN;
   const unused = allocated.sub(spent);
-  const label = decodeLabel(a.label) || (depth === 0 ? "vault" : "budget");
+  const label = decodeLabel(a.label) || (depth === 0 ? "vault" : "mandate");
   const key = node.pubkey.toBase58();
   const busyThis = busy === key;
 

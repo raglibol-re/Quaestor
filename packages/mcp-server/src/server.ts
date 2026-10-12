@@ -57,7 +57,7 @@ function rejected(ops: ChainOps, e: unknown) {
         requested: e.details.requested,
         available: e.details.available,
         limit: e.details.limit,
-        next: "reduce the amount, or request a larger budget from your parent agent.",
+        next: "reduce the amount, or request a larger mandate from your parent agent.",
       })
     );
   }
@@ -72,11 +72,11 @@ function rejected(ops: ChainOps, e: unknown) {
 
 function registerTools(server: McpServer, ops: ChainOps) {
   server.registerTool(
-    "get_my_budget",
+    "get_my_mandate",
     {
-      title: "Get budget",
+      title: "Get mandate",
       description:
-        "Show this agent's available balance, allocated/spent, per-transaction and daily limits, status and expiry. Amounts are in USDC.",
+        "Show this agent's mandate: available balance, allocated/spent, per-transaction and daily limits, status and expiry. Amounts are in USDC.",
       inputSchema: {},
     },
     async () => {
@@ -94,7 +94,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
     {
       title: "Request spend",
       description:
-        "Send USDC from this agent's budget to a recipient wallet. Enforced onchain: per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this budget or any ancestor.",
+        "Send USDC from this agent's mandate to a recipient wallet. Enforced onchain: per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this mandate or any ancestor.",
       inputSchema: {
         recipient: z.string().describe("Recipient wallet address (base58)."),
         amount_usdc: z.string().describe('Amount in USDC as a decimal string, e.g. "0.50".'),
@@ -130,11 +130,11 @@ function registerTools(server: McpServer, ops: ChainOps) {
   );
 
   server.registerTool(
-    "create_subagent_budget",
+    "create_submandate",
     {
-      title: "Delegate budget",
+      title: "Delegate mandate",
       description:
-        "Delegate part of this agent's budget to a new subagent. Limits cannot exceed this agent's own limits. Returns the new agent name and a ready-to-paste MCP config snippet for it.",
+        "Carve a sub-mandate from this agent's mandate for a new subagent. Limits cannot exceed this agent's own limits (monotone tightening). Returns the new agent name and a ready-to-paste MCP config snippet for it.",
       inputSchema: {
         label: z.string().describe("Human label, e.g. \"research-agent\"."),
         amount_usdc: z.string().describe("Amount to allocate, in USDC."),
@@ -164,7 +164,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
             rows: [
               { key: "agent", value: r.agentName },
               { key: "agent key", value: r.agentPubkey },
-              { key: "budget", value: r.budget },
+              { key: "mandate", value: r.budget },
               { key: "allocated", value: amt, align: "right" },
               { key: "signature", value: r.signature },
             ],
@@ -174,7 +174,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
             label: args.label,
             agent_name: r.agentName,
             agent_pubkey: r.agentPubkey,
-            budget: r.budget,
+            mandate: r.budget,
             allocated: args.amount_usdc,
             allocated_base_units: baseUnitsString(toBaseUnits(args.amount_usdc)),
             signature: r.signature,
@@ -190,7 +190,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
     "list_subagents",
     {
       title: "List subagents",
-      description: "List this agent's direct subagent budgets with their status and balances.",
+      description: "List this agent's direct sub-mandates with their status and balances.",
       inputSchema: {},
     },
     async () => {
@@ -295,7 +295,7 @@ function registerTools(server: McpServer, ops: ChainOps) {
     "get_history",
     {
       title: "Recent transactions",
-      description: "List recent transactions touching this agent's budget account.",
+      description: "List recent transactions touching this agent's mandate account.",
       inputSchema: { limit: z.number().optional().describe("Max entries (default 10).") },
     },
     async ({ limit }) => {
@@ -313,10 +313,10 @@ function registerTools(server: McpServer, ops: ChainOps) {
       title: "Pay for a paywalled resource (x402)",
       description:
         "Fetch an HTTP URL that may require payment via the x402 protocol. On an HTTP 402 response, " +
-        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR BUDGET (budget-enforced onchain: " +
+        "pay the required USDC DIRECTLY FROM THIS AGENT'S QUAESTOR MANDATE (mandate-enforced onchain: " +
         "per-transaction limit, daily limit, available balance, allowlist, and freeze/expiry of this " +
-        "budget or any ancestor), then retry with the onchain payment proof and return the resource. " +
-        "If a budget limit rejects the payment, the resource is NOT fetched and the reason is returned.",
+        "mandate or any ancestor), then retry with the onchain payment proof and return the resource. " +
+        "If a mandate limit rejects the payment, the resource is NOT fetched and the reason is returned.",
       inputSchema: {
         url: z.string().describe("The URL of the (possibly paywalled) resource to fetch."),
       },

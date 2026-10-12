@@ -132,7 +132,7 @@ export function renderRejection(opts: {
  * The budget tree as monospace text with ├─ └─ │ connectors and depth
  * numerals, readable in any terminal (brand/README.md "plain-text" surface):
  *
- *   BUDGET TREE  vault 1,250.00 USDC
+ *   MANDATE TREE  vault 1,250.00 USDC
  *   ├─ [II]  research-agent  60.00 USDC  active
  *   │  └─ [III] scraper-sub  15.00 USDC  frozen
  *   └─ [II]  writer-agent    40.00 USDC  active
@@ -140,14 +140,14 @@ export function renderRejection(opts: {
 export function renderBudgetTree(root: BudgetTreeNode, opts: { rootLabel?: string } = {}): string {
   const rootLabel = opts.rootLabel ?? (decodeLabel(root.account.label) || "vault");
   const rootAmt = formatUSDC(root.account.allocated as BN, { unit: true });
-  const lines: string[] = [`BUDGET TREE  ${rootLabel} ${rootAmt}`];
+  const lines: string[] = [`MANDATE TREE  ${rootLabel} ${rootAmt}`];
 
   const walk = (nodes: BudgetTreeNode[], depth: number, prefix: string) => {
     nodes.forEach((n, i) => {
       const last = i === nodes.length - 1;
       const branch = last ? "└─" : "├─";
       const numeral = depthNumeral(depth + 1);
-      const label = decodeLabel(n.account.label) || "budget";
+      const label = decodeLabel(n.account.label) || "mandate";
       const amt = formatUSDC(n.account.allocated as BN, { unit: true });
       const status = statusName(n.account.status);
       lines.push(`${prefix}${branch} [${numeral}] ${label}  ${amt}  ${status}`);
@@ -164,7 +164,7 @@ function usdcDec(decimal: string): string {
 }
 
 /**
- * A single budget as returned, chain-neutrally, by an MCP `get_my_budget`
+ * A single mandate as returned, chain-neutrally, by an MCP `get_my_mandate`
  * (SolanaOps/EvmOps). Amounts are human decimal-USDC strings; status is one of
  * active | frozen | revoked. Extra backend fields are ignored.
  */
@@ -193,8 +193,8 @@ export interface SubagentView {
 export function renderBudget(v: BudgetView): string {
   const head =
     v.depth != null
-      ? `BUDGET  ${v.label}  [${depthNumeral(v.depth + 1)}]  ${v.status}`
-      : `BUDGET  ${v.label}  ${v.status}`;
+      ? `MANDATE  ${v.label}  [${depthNumeral(v.depth + 1)}]  ${v.status}`
+      : `MANDATE  ${v.label}  ${v.status}`;
   const rows: ResultRow[] = [
     { key: "allocated", value: usdcDec(v.allocated), align: "right" },
     { key: "spent", value: usdcDec(v.spent), align: "right" },
@@ -210,7 +210,7 @@ export function renderBudget(v: BudgetView): string {
 /** Direct subagents as a branded list with ├─ └─ connectors. */
 export function renderBudgetList(opts: { title: string; items: SubagentView[] }): string {
   const title = opts.title.toUpperCase();
-  if (!opts.items.length) return `${title}  (0)\n  No agents yet. Delegate a budget to start.`;
+  if (!opts.items.length) return `${title}  (0)\n  No agents yet. Delegate a mandate to start.`;
   const lines = [`${title}  (${opts.items.length})`];
   opts.items.forEach((it, i) => {
     const branch = i === opts.items.length - 1 ? "└─" : "├─";
