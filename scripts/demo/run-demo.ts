@@ -18,7 +18,8 @@ import {
   toBaseUnits,
   type BudgetTreeNode,
 } from "@quaestor/sdk";
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 
@@ -30,6 +31,19 @@ const L = (s = "") => console.log(s);
 const step = (n: number, t: string) =>
   L(`\n${"=".repeat(64)}\n  STEP ${n}  ·  ${t}\n${"=".repeat(64)}`);
 const ex = (sig: string) => `https://explorer.solana.com/tx/${sig}?cluster=${CLUSTER}`;
+
+// Spend attribution: a readable SPL Memo on the same tx carrying task id + sha256(reason).
+// Plaintext reason stays off-chain; the hash commits it on-chain (see mcp-server/attribution.ts).
+const MEMO_PROGRAM = new PublicKey("MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr");
+const memoIx = (task: string, reason: string) =>
+  new TransactionInstruction({
+    programId: MEMO_PROGRAM,
+    keys: [],
+    data: Buffer.from(
+      `quaestor/v1 task=${task} rhash=${createHash("sha256").update(reason).digest("hex")}`,
+      "utf8"
+    ),
+  });
 
 function loadKp(path: string): Keypair {
   const p = path.startsWith("~") ? path.replace("~", homedir()) : path;
@@ -44,7 +58,7 @@ async function main() {
   const client = QuaestorClient.fromProvider(provider);
   const spl = await import("@solana/spl-token");
 
-  L("\n  QUAESTOR — Give agents budgets, not keys.");
+  L("\n  QUAESTOR — Give your agent a mandate, not a wallet.");
   L(`  owner (human): ${owner.publicKey.toBase58()}   cluster: ${CLUSTER}`);
 
   const projectId = Date.now() % 1_000_000_000;
@@ -66,7 +80,7 @@ async function main() {
   L("  deposited 10 USDC into the project vault");
   await sleep(PAUSE);
 
-  step(2, "Orchestrator agent receives a 6 USDC budget");
+  step(2, "Orchestrator agent receives a 6 USDC mandate");
   const orch = Keypair.generate();
   const [orchBudget] = findBudgetPda(project, orch.publicKey);
   await client
@@ -75,7 +89,7 @@ async function main() {
   L(`  orchestrator ${orch.publicKey.toBase58().slice(0, 8)}... funded with 6 USDC`);
   await sleep(PAUSE);
 
-  step(3, "Orchestrator delegates 2 USDC to a research sub-agent (max 0.50/tx)");
+  step(3, "Orchestrator carves a 2 USDC sub-mandate for a research agent (max 0.50/tx)");
   const research = Keypair.generate();
   const [researchBudget] = findBudgetPda(project, research.publicKey);
   await client
@@ -88,10 +102,17 @@ async function main() {
   const merchant = Keypair.generate();
   const merchantAta = (await spl.getOrCreateAssociatedTokenAccount(conn, owner, mint, merchant.publicKey)).address;
 
-  step(4, "Research agent pays for data: 2 x 0.50 USDC");
-  for (let i = 1; i <= 2; i++) {
-    const sig = await (await client.spend({ agent: research.publicKey, project, budget: researchBudget, recipient: merchantAta, amount: toBaseUnits("0.5") })).signers([research]).rpc();
-    L(`  paid 0.50 USDC   ${ex(sig)}`);
+  step(4, "Research agent pays for data — each spend is attributed (task + reason)");
+  const chapters = [
+    { task: "report/chapter-1", reason: "dataset: solana validator economics" },
+    { task: "report/chapter-2", reason: "dataset: L2 fee markets" },
+  ];
+  for (const c of chapters) {
+    const sig = await (await client.spend({ agent: research.publicKey, project, budget: researchBudget, recipient: merchantAta, amount: toBaseUnits("0.5") }))
+      .preInstructions([memoIx(c.task, c.reason)])
+      .signers([research])
+      .rpc();
+    L(`  paid 0.50 USDC   task=${c.task}  reason="${c.reason}"   ${ex(sig)}`);
     await sleep(Math.round(PAUSE / 1.5));
   }
 
@@ -134,7 +155,7 @@ async function main() {
   };
   if (tree) print(tree, 0);
   L(`\n  project: ${project.toBase58()}`);
-  L('\n  "Give agents budgets, not keys."\n');
+  L('\n  "Give your agent a mandate, not a wallet."\n');
 }
 
 main().catch((e) => {
