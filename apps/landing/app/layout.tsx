@@ -21,10 +21,26 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
+const TITLE = "Quaestor — give your agent a mandate, not a wallet";
+const DESCRIPTION =
+  "Hierarchical, onchain-enforced USDC spending mandates for AI agents. Fund a tree of agents, cap every branch, freeze any of it instantly — accessed over MCP. Set up in minutes.";
+
 export const metadata: Metadata = {
-  title: "Quaestor — give your agent a mandate, not a wallet",
-  description:
-    "Hierarchical, onchain-enforced USDC spending mandates for AI agents. Fund a tree of agents, cap every branch, freeze any of it instantly — accessed over MCP. Set up in minutes.",
+  metadataBase: new URL("https://quaestor-landing.vercel.app"),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    url: "https://quaestor-landing.vercel.app",
+    siteName: "Quaestor",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
