@@ -15,10 +15,18 @@ export interface CreateSubagentParams {
   allowlist?: string[];
 }
 
+/** Spend attribution: a task id + a plaintext reason (hashed on-chain, plaintext off-chain). */
+export interface Attribution {
+  taskId?: string;
+  reason?: string;
+}
+
 export interface PayResult {
   signature: string;
   recipient: string;
   amount: string;
+  taskId?: string;
+  reason?: string;
 }
 
 export interface CreateSubagentResult {
@@ -52,7 +60,7 @@ export interface ChainOps {
   /** This agent's own address (the x402 payer), as a chain-native string. */
   payerAddress(): string;
   getMyBudget(): Promise<unknown>;
-  pay(recipient: string, amountUsdc: string): Promise<PayResult>;
+  pay(recipient: string, amountUsdc: string, attribution?: Attribution): Promise<PayResult>;
   createSubagentBudget(p: CreateSubagentParams): Promise<CreateSubagentResult>;
   listSubagents(): Promise<unknown>;
   freezeSubagent(label: string, freeze: boolean): Promise<StatusResult>;

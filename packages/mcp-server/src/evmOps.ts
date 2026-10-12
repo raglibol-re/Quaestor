@@ -5,11 +5,13 @@ import {
   decodeLabel,
   fromBaseUnits,
   getAddress,
+  keccak256,
   statusName,
   toBaseUnits,
 } from "@quaestor/evm-sdk";
 import type { Address, Hex } from "@quaestor/evm-sdk";
 import type {
+  Attribution,
   ChainOps,
   CreateSubagentParams,
   CreateSubagentResult,
@@ -17,6 +19,7 @@ import type {
   ReclaimResult,
   StatusResult,
 } from "./chainOps";
+import { appendAttribution, hasAttribution } from "./attribution";
 import { loadEvmConfig, type ChainKind } from "./config";
 import { buildEvmContext, type EvmContext } from "./evmContext";
 import { createEvmAgent } from "./evmKeystore";
@@ -105,7 +108,7 @@ export class EvmOps implements ChainOps {
     };
   }
 
-  async pay(recipient: string, amountUsdc: string): Promise<PayResult> {
+  async pay(recipient: string, amountUsdc: string, attribution?: Attribution): Promise<PayResult> {
     const to = getAddress(recipient);
     const amount = toBaseUnits(amountUsdc);
     await this.preflight("spend", [this.ctx.agentBudgetKey, to, amount]);
@@ -116,7 +119,26 @@ export class EvmOps implements ChainOps {
       recipient: to,
       amount,
     });
-    return { signature: hash, recipient: to, amount: amountUsdc };
+    if (hasAttribution(attribution)) {
+      const reason = attribution.reason?.trim();
+      appendAttribution({
+        ts: Date.now(),
+        chain: this.networkLabel(),
+        signature: hash,
+        recipient: to,
+        amount: amountUsdc,
+        taskId: attribution.taskId?.trim() || undefined,
+        reason: reason || undefined,
+        reasonHash: reason ? keccak256(Buffer.from(reason, "utf8")) : undefined,
+      });
+    }
+    return {
+      signature: hash,
+      recipient: to,
+      amount: amountUsdc,
+      taskId: attribution?.taskId?.trim() || undefined,
+      reason: attribution?.reason?.trim() || undefined,
+    };
   }
 
   async createSubagentBudget(p: CreateSubagentParams): Promise<CreateSubagentResult> {

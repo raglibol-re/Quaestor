@@ -9,8 +9,9 @@ import {
 } from "@quaestor/sdk";
 import { PublicKey } from "@solana/web3.js";
 import { join } from "node:path";
-import type { CreateSubagentParams } from "./chainOps";
+import type { Attribution, CreateSubagentParams } from "./chainOps";
 import type { AgentContext } from "./context";
+import { appendAttribution, hashReason, hasAttribution, memoInstruction, memoPayload, readAttributionMap } from "./attribution";
 import { createAgent, hasAgent } from "./keystore";
 
 export type { CreateSubagentParams };
@@ -37,7 +38,12 @@ export async function getMyBudget(ctx: AgentContext) {
   };
 }
 
-export async function pay(ctx: AgentContext, recipient: string, amountUsdc: string) {
+export async function pay(
+  ctx: AgentContext,
+  recipient: string,
+  amountUsdc: string,
+  attribution?: Attribution
+) {
   const { getAssociatedTokenAddressSync, createAssociatedTokenAccountIdempotentInstruction } =
     await import("@solana/spl-token");
   const project = await ctx.client.getProject(ctx.config.project);
@@ -51,6 +57,11 @@ export async function pay(ctx: AgentContext, recipient: string, amountUsdc: stri
     recipientOwner,
     project.mint
   );
+  // Attach attribution (task_id + sha256(reason)) as an SPL Memo on the same tx.
+  const pre = [createAtaIx];
+  const payload = memoPayload(attribution);
+  if (payload) pre.push(memoInstruction(payload));
+
   const builder = await ctx.client.spend({
     agent: ctx.agentPubkey,
     project: ctx.config.project,
@@ -58,11 +69,27 @@ export async function pay(ctx: AgentContext, recipient: string, amountUsdc: stri
     recipient: recipientAta,
     amount,
   });
-  const signature = await builder
-    .preInstructions([createAtaIx])
-    .signers([ctx.agentKeypair])
-    .rpc();
-  return { signature, recipient: recipientOwner.toBase58(), amount: amountUsdc };
+  const signature = await builder.preInstructions(pre).signers([ctx.agentKeypair]).rpc();
+
+  if (hasAttribution(attribution)) {
+    appendAttribution({
+      ts: Date.now(),
+      chain: "solana",
+      signature,
+      recipient: recipientOwner.toBase58(),
+      amount: amountUsdc,
+      taskId: attribution.taskId?.trim() || undefined,
+      reason: attribution.reason?.trim() || undefined,
+      reasonHash: attribution.reason?.trim() ? hashReason(attribution.reason.trim()) : undefined,
+    });
+  }
+  return {
+    signature,
+    recipient: recipientOwner.toBase58(),
+    amount: amountUsdc,
+    taskId: attribution?.taskId?.trim() || undefined,
+    reason: attribution?.reason?.trim() || undefined,
+  };
 }
 
 export async function createSubagentBudget(ctx: AgentContext, p: CreateSubagentParams) {
@@ -185,12 +212,17 @@ export async function reclaimSubagent(ctx: AgentContext, label: string) {
 
 export async function getHistory(ctx: AgentContext, limit = 10) {
   const sigs = await ctx.connection.getSignaturesForAddress(ctx.agentBudget, { limit });
-  return sigs.map((s) => ({
-    signature: s.signature,
-    slot: s.slot,
-    blockTime: s.blockTime ?? null,
-    err: s.err ? "failed" : "ok",
-  }));
+  const attr = readAttributionMap();
+  return sigs.map((s) => {
+    const a = attr.get(s.signature);
+    return {
+      signature: s.signature,
+      slot: s.slot,
+      blockTime: s.blockTime ?? null,
+      err: s.err ? "failed" : "ok",
+      ...(a ? { taskId: a.taskId ?? null, reason: a.reason ?? null, reasonHash: a.reasonHash ?? null } : {}),
+    };
+  });
 }
 
 function mcpConfigSnippet(name: string, ctx: AgentContext): string {

@@ -98,28 +98,42 @@ function registerTools(server: McpServer, ops: ChainOps) {
       inputSchema: {
         recipient: z.string().describe("Recipient wallet address (base58)."),
         amount_usdc: z.string().describe('Amount in USDC as a decimal string, e.g. "0.50".'),
-        memo: z.string().optional().describe("Optional human note (not stored onchain)."),
+        memo: z
+          .string()
+          .optional()
+          .describe(
+            "Optional reason for this spend (attribution). Plaintext is logged off-chain; a sha256 hash is written onchain via a memo so the spend is auditable."
+          ),
+        task_id: z
+          .string()
+          .optional()
+          .describe("Optional task id to attribute this spend to (for cost-per-task accounting)."),
       },
     },
-    async ({ recipient, amount_usdc }) => {
+    async ({ recipient, amount_usdc, memo, task_id }) => {
       try {
-        const r = await ops.pay(recipient, amount_usdc);
+        const r = await ops.pay(recipient, amount_usdc, { taskId: task_id, reason: memo });
         const amt = usdc(r.amount);
+        const rows = [
+          { key: "recipient", value: r.recipient },
+          { key: "amount", value: amt, align: "right" as const },
+          ...(r.taskId ? [{ key: "task", value: r.taskId }] : []),
+          ...(r.reason ? [{ key: "reason", value: r.reason }] : []),
+          { key: "signature", value: r.signature },
+        ];
         return okResult(
           renderResult({
             state: "APPROVED",
             sentence: `onchain. Spent ${amt} to ${short(r.recipient)}.`,
-            rows: [
-              { key: "recipient", value: r.recipient },
-              { key: "amount", value: amt, align: "right" },
-              { key: "signature", value: r.signature },
-            ],
+            rows,
           }),
           {
             status: "approved",
             recipient: r.recipient,
             amount: r.amount,
             amount_base_units: baseUnitsString(toBaseUnits(r.amount)),
+            task_id: r.taskId ?? null,
+            reason: r.reason ?? null,
             signature: r.signature,
           }
         );

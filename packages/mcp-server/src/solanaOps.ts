@@ -1,6 +1,7 @@
 import { availableOf, toBaseUnits } from "@quaestor/sdk";
 import { BudgetRejection } from "./chainOps";
 import type {
+  Attribution,
   ChainOps,
   CreateSubagentParams,
   CreateSubagentResult,
@@ -49,9 +50,9 @@ export class SolanaOps implements ChainOps {
     return r;
   }
 
-  async pay(recipient: string, amountUsdc: string): Promise<PayResult> {
+  async pay(recipient: string, amountUsdc: string, attribution?: Attribution): Promise<PayResult> {
     try {
-      return await ops.pay(this.ctx, recipient, amountUsdc);
+      return await ops.pay(this.ctx, recipient, amountUsdc, attribution);
     } catch (e) {
       // Enrich limit violations with the actual numbers (previously done in server.ts).
       let nums;
