@@ -1,14 +1,24 @@
 "use client";
 
-import { BN, availableOf, fromBaseUnits, type BudgetTreeNode, type ProjectData } from "@quaestor/sdk";
+import { BN, availableOf, type BudgetTreeNode, type ProjectData } from "@quaestor/sdk";
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { BudgetNode, type NodeAction } from "@/components/BudgetNode";
 import { TxFeed } from "@/components/TxFeed";
+import { Amount } from "@/components/brand/Amount";
+import { Button } from "@/components/brand/Button";
+import { Mark } from "@/components/brand/Mark";
 import { DEMO_PROJECT, RPC_URL } from "@/lib/config";
 import { readClient, writeClient } from "@/lib/quaestor";
+
+const ACTION_MSG: Record<NodeAction, string> = {
+  freeze: "Branch frozen.",
+  unfreeze: "Branch unfrozen.",
+  revoke: "Budget revoked onchain.",
+  reclaim: "Funds reclaimed.",
+};
 
 const WalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
@@ -89,7 +99,7 @@ export default function Page() {
             })
           ).rpc();
         }
-        setToast({ msg: `${action} succeeded` });
+        setToast({ msg: ACTION_MSG[action] });
         await load();
       } catch (e: unknown) {
         setToast({ msg: e instanceof Error ? e.message : "action failed", err: true });
@@ -120,10 +130,9 @@ export default function Page() {
     <div className="wrap">
       <header className="header">
         <div className="brand">
-          <h1>
-            Quaestor<span className="dot">.</span>
-          </h1>
-          <span className="tagline">Give agents budgets, not keys.</span>
+          <Mark className="brand-mark" />
+          <h1 className="wordmark">Quaestor</h1>
+          <span className="tagline">Onchain budgets for AI agents.</span>
         </div>
         <div className="controls">
           <input
@@ -133,42 +142,42 @@ export default function Page() {
             onChange={(e) => setProjectInput(e.target.value.trim())}
             onKeyDown={(e) => e.key === "Enter" && setProject(projectInput)}
           />
-          <button className="btn" onClick={() => setProject(projectInput)}>
-            Load
-          </button>
+          <Button onClick={() => setProject(projectInput)}>Load</Button>
           <WalletMultiButton />
         </div>
       </header>
 
       <section className="summary">
         <div className="stat">
-          <div className="k">Total budget</div>
+          <div className="label">Total budget</div>
           <div className="v">
-            {stats ? fromBaseUnits(stats.allocated) : "—"} <small>USDC</small>
+            {stats ? <Amount value={stats.allocated} size="lg" /> : <span className="amount-lg">—</span>}
           </div>
         </div>
         <div className="stat">
-          <div className="k">Spent</div>
+          <div className="label">Spent</div>
           <div className="v">
-            {stats ? fromBaseUnits(stats.spent) : "—"} <small>USDC</small>
+            {stats ? <Amount value={stats.spent} size="lg" /> : <span className="amount-lg">—</span>}
           </div>
         </div>
         <div className="stat">
-          <div className="k">Root available</div>
+          <div className="label">Root available</div>
           <div className="v">
-            {stats ? fromBaseUnits(stats.available) : "—"} <small>USDC</small>
+            {stats ? <Amount value={stats.available} size="lg" /> : <span className="amount-lg">—</span>}
           </div>
         </div>
         <div className="stat">
-          <div className="k">Agents</div>
-          <div className="v">{stats ? stats.agents : "—"}</div>
+          <div className="label">Agents</div>
+          <div className="v">
+            <span className="amount-lg">{stats ? stats.agents : "—"}</span>
+          </div>
         </div>
       </section>
 
       <div className="layout">
         <div className="panel">
-          <div className="panel-title">Budget tree {canManage ? "· you are the owner" : ""}</div>
-          {error && <div className="empty">⚠ {error}</div>}
+          <div className="panel-title label">Budget tree{canManage ? " · you are the owner" : ""}</div>
+          {error && <div className="empty">{error}</div>}
           {!error && !tree && <div className="empty">Enter a project address to load its budget tree.</div>}
           {tree && (
             <div className="tree">
@@ -177,7 +186,7 @@ export default function Page() {
           )}
         </div>
         <div className="panel">
-          <div className="panel-title">Vault activity</div>
+          <div className="panel-title label">Vault activity</div>
           <TxFeed rpc={RPC_URL} address={projectData?.vault ?? null} />
         </div>
       </div>
