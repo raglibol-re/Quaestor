@@ -18,7 +18,7 @@ Ready-to-paste answers + a pre-submission checklist. Deadline: **2026-10-12, 11:
   - Demo video: `<ADD URL>`
   - Solana program (devnet): `FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP`
   - Base Sepolia contract: `0xe704014D856aecD47B797CF47d42648060276d43`
-- **What's next:** plain-language mandates (describe a budget in English → policy schema → on-chain), over-limit escalation with human approval (Blink + Telegram), cost-per-task dashboard + burn-rate forecast, identity binding (ERC-8004 / Metaplex Agent Registry), reputation-weighted mandate sizing.
+- **What's next:** plain-language mandates (describe a mandate in plain English → policy schema → on-chain), over-limit escalation with human approval (Blink + Telegram), cost-per-task dashboard + burn-rate forecast, identity binding (ERC-8004 / Metaplex Agent Registry), reputation-weighted mandate sizing.
 
 ## Superteam Earn — RPC Fast sidetrack
 

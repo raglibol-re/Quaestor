@@ -2,7 +2,7 @@
   "name": "quaestor",
   "version": "0.0.1",
   "private": true,
-  "description": "Hierarchical, on-chain-enforced budgets for AI agents on Solana. Give agents budgets, not keys.",
+  "description": "Delegable, on-chain-enforced spending mandates for AI agents. Give your agent a mandate, not a wallet.",
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
   "engines": {

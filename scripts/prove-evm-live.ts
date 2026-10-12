@@ -91,7 +91,7 @@ async function main() {
       ?? (String((e as { message?: string }).message).match(/PerTxLimitExceeded|InsufficientAvailable|AncestorNotActive|NotActive/) || ["revert"])[0];
     console.log(`REJECTED on-chain (${name}). The paywalled action never happens.`);
   }
-  console.log(`\n  ✔ Enforced on Base Sepolia. Give agents budgets, not keys.\n`);
+  console.log(`\n  ✔ Enforced on Base Sepolia. Give your agent a mandate, not a wallet.\n`);
 }
 
 main().catch((e) => { console.error("proof failed:", e?.shortMessage ?? e?.message ?? e); process.exit(1); });

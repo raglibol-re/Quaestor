@@ -34,7 +34,7 @@ node packages/mcp-server/dist/cli.js init --mint <MINT> --project-id 1 \
   --relayer $(solana-keygen pubkey ~/.quaestor/relayer.json)          # -> PROJECT
 node packages/mcp-server/dist/cli.js deposit --project <PROJECT> --amount 10
 
-# create the top agent and give it a budget
+# create the top agent and give it a mandate
 node packages/mcp-server/dist/cli.js agent-create orchestrator         # -> AGENT PUBKEY
 # (allocate to it from the owner via the CLI/dashboard, or let the owner's MCP do it)
 ```

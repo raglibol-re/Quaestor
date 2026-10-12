@@ -98,7 +98,7 @@ async function main() {
   const ownerWallet = createWalletClient({ account: owner, chain, transport }); // also the relayer
   const waitTx = (hash: Hex) => publicClient.waitForTransactionReceipt({ hash });
 
-  L("\n  QUAESTOR x402 — an agent pays a paywalled URL from its on-chain budget.");
+  L("\n  QUAESTOR x402 — an agent pays a paywalled URL from its on-chain mandate.");
   L(`  rpc: ${RPC}   chainId: ${chainId}   owner/relayer: ${owner.address}`);
 
   // -------------------------------------------------------------------------
@@ -158,7 +158,7 @@ async function main() {
   L(`  project ${projectKey} funded with 10 USDC`);
 
   // -------------------------------------------------------------------------
-  step(2, "Owner allocates the agent a 5 USDC budget with a 0.50 USDC per-tx limit");
+  step(2, "Owner grants the agent a 5 USDC mandate with a 0.50 USDC per-tx limit");
   // -------------------------------------------------------------------------
   const agent = privateKeyToAccount(generatePrivateKey());
   const agentBudget = budgetKeyOf(projectKey, agent.address);
@@ -228,7 +228,7 @@ async function main() {
   let bReason = "";
   try {
     // ---------------------------------------------------------------------
-    step(4, "(A) Agent fetches /premium (0.25 USDC) — pays from budget, gets the data");
+    step(4, "(A) Agent fetches /premium (0.25 USDC) — pays from its mandate, gets the data");
     // ---------------------------------------------------------------------
     const a = await x402Fetch(agentOps, `${base}/premium`);
     const body = a.body as { data?: string };
@@ -256,7 +256,7 @@ async function main() {
       const flat = `${errorName} ${e?.shortMessage ?? e?.message ?? String(e)}`;
       bReason = errorName || (e?.shortMessage ?? e?.message ?? String(e));
       const perTx = /PerTxLimitExceeded|per-?transaction/i.test(flat);
-      L(`  BLOCKED by budget — the agent's 0.50 USDC per-tx limit rejected the 3 USDC payment`);
+      L(`  BLOCKED by the mandate — the agent's 0.50 USDC per-tx limit rejected the 3 USDC payment`);
       L(`  reason: ${perTx ? "PerTxLimitExceeded (per-transaction limit)" : bReason}`);
       L("  the paywalled resource was NEVER fetched.");
     }
@@ -281,7 +281,7 @@ async function main() {
     ["(A) agent received the premium data", aData === "the answer is 42"],
     ["(A) payment produced an on-chain proof tx", /^0x[0-9a-fA-F]{64}$/.test(aProof)],
     ["(A) merchant actually received 0.25 USDC on-chain", merchBal === toBaseUnits("0.25")],
-    ["(B) the 3 USDC payment was blocked by the budget", bBlocked],
+    ["(B) the 3 USDC payment was blocked by the mandate", bBlocked],
     ["(B) rejection was the per-tx limit", /PerTxLimitExceeded|per-?transaction/i.test(bReason)],
   ];
   let ok = true;
@@ -291,8 +291,8 @@ async function main() {
   }
   L(`  ${"-".repeat(70)}`);
   if (!ok) throw new Error("x402 demo assertions failed");
-  L('\n  All checks passed.  An agent paid a paywalled URL from its on-chain-enforced budget —');
-  L('  and the same budget blocked an over-limit payment.  "Give agents budgets, not keys."\n');
+  L('\n  All checks passed.  An agent paid a paywalled URL from its on-chain-enforced mandate —');
+  L('  and the same mandate blocked an over-limit payment.  "Give your agent a mandate, not a wallet."\n');
 }
 
 main().catch((e) => {

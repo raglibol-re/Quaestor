@@ -97,7 +97,7 @@ async function main() {
   const waitTx = async (hash: `0x${string}`) =>
     publicClient.waitForTransactionReceipt({ hash });
 
-  L("\n  QUAESTOR (EVM) — Give agents budgets, not keys.");
+  L("\n  QUAESTOR (EVM) — Give your agent a mandate, not a wallet.");
   L(`  rpc: ${RPC}   chainId: ${chainId}`);
   L(`  owner / relayer: ${owner.address}`);
 
@@ -182,7 +182,7 @@ async function main() {
   L(`  deposited 10 USDC into the project vault   tx ${depHash}`);
 
   // ---------------------------------------------------------------------
-  step(2, "Owner allocates the orchestrator a 6 USDC budget (DIRECT)");
+  step(2, "Owner grants the orchestrator a 6 USDC mandate (DIRECT)");
   // ---------------------------------------------------------------------
   const orch = privateKeyToAccount(generatePrivateKey());
   const orchBudget = budgetKeyOf(projectKey, orch.address);
@@ -309,7 +309,7 @@ async function main() {
   );
 
   // ---------------------------------------------------------------------
-  step(8, "Final budget tree");
+  step(8, "Final mandate tree");
   // ---------------------------------------------------------------------
   const tree = await client.fetchBudgetTree(projectKey);
   const printNode = (n: BudgetNode, d: number) => {
@@ -341,7 +341,7 @@ async function main() {
   }
   L(`  ${"-".repeat(68)}`);
   if (!ok) throw new Error("demo assertions failed");
-  L('\n  All checks passed.  "Give agents budgets, not keys."\n');
+  L('\n  All checks passed.  "Give your agent a mandate, not a wallet."\n');
 }
 
 main().catch((e) => {
