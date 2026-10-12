@@ -18,6 +18,12 @@ test-ledger
 **/keys/
 *.pem
 
+# --- EVM / Foundry (contracts/) ---
+contracts/lib/
+contracts/cache/
+contracts/out/
+contracts/broadcast/
+
 # --- JS/TS build outputs ---
 dist
 build
