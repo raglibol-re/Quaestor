@@ -138,19 +138,22 @@ QUAESTOR_OWNER_KEYPAIR="$HOME/.config/solana/id.json" \
 ## Repo layout
 
 ```
-programs/quaestor/     Anchor program (Rust)            — the enforcement core (9 instructions)
-programs/quaestor/tests/                                — 25 LiteSVM tests (incl. property test)
+programs/quaestor/     Anchor program (Rust)            — the Solana enforcement core (10 instructions)
+programs/quaestor/tests/                                — 28 LiteSVM tests (incl. property test)
+contracts/             Quaestor.sol (Foundry)           — the EVM enforcement core (18 tests)
 packages/sdk/          @quaestor/sdk: PDAs, ix builders, budget-tree fetch, unit conversion
-packages/mcp-server/   MCP server (stdio, 8 tools) + owner CLI (11 commands)
+packages/evm-sdk/      @quaestor/evm-sdk: viem client + EIP-2771 gasless forwarder
+packages/mcp-server/   MCP server (stdio) + owner CLI — one ChainOps interface, Solana + EVM backends
 apps/dashboard/        Next.js live budget-tree UI (deployed to Vercel)
-scripts/demo/          reproducible ~90s demo scenario
-docs/                  mcp-setup.md, devnet.md
+scripts/demo/          reproducible ~90s Solana demo · scripts/demo-evm.ts  gasless EVM demo
+docs/                  mcp-setup.md, devnet.md, evm.md
 ```
 
 ### On-chain instructions
 
 `create_project` · `deposit` · `allocate_child` · `increase_allocation` · `spend` ·
-`set_status` (freeze/unfreeze) · `revoke` · `reclaim` · `withdraw`
+`set_status` (owner freeze/unfreeze) · `agent_set_status` (ancestor-agent freeze/unfreeze) ·
+`revoke` · `reclaim` · `withdraw`
 
 ### MCP tools (what an agent sees)
 
@@ -215,14 +218,33 @@ Milestone-based build for the Colosseum Crypto World's Fair (submission 2026-10-
 - [x] **M4** Dashboard — live tree, deployed to Vercel
 - [x] **M5** Reproducible ~90s demo scenario
 - [x] **M6** Devnet deploy · docs · submission
+- [x] **M7** Ancestor-**agent** freeze — a parent/grandparent agent can freeze a descendant subtree, not just the owner (28 Rust/LiteSVM tests)
+- [x] **M8** EVM port — `contracts/Quaestor.sol`, a faithful Solidity port + 18 Foundry tests incl. an invariant fuzz
+- [x] **M9** `@quaestor/evm-sdk` — viem client + **EIP-2771 gasless forwarder** (agents hold no gas on EVM either)
+- [x] **M10** `QUAESTOR_CHAIN` switch — the same 8 MCP tools drive Solana or EVM behind one `ChainOps` interface
 
-Everything runs on **devnet / local validator**. No mainnet keys; no private keys in git.
+Everything runs on **devnet / local validator / anvil**. No mainnet keys; no private keys in git.
+
+### Multi-chain
+
+The budget model is chain-agnostic, so Quaestor runs on **Solana** and **EVM** from one codebase:
+
+| | Solana | EVM (Tempo testnet · Base Sepolia) |
+|---|---|---|
+| Enforcement | Anchor program, PDAs | `Quaestor.sol`, storage mappings |
+| Gasless | relayer fee-payer | ERC-2771 forwarder (`_msgSender`) |
+| Client | `@quaestor/sdk` (Anchor) | `@quaestor/evm-sdk` (viem) |
+| Agent access | MCP (`QUAESTOR_CHAIN=solana`) | MCP (`QUAESTOR_CHAIN=tempo|base`) |
+
+The `spent + reserved ≤ allocated` invariant, the ancestor-chain walk, `Option`-typed limits,
+snap-to-now period reset, and ancestor-agent freeze are identical on both. See
+[`docs/evm.md`](docs/evm.md) to deploy + wire the MCP server to an EVM chain.
 
 ### Roadmap / stretch
 
-Multi-chain: one Solidity `Quaestor.sol` (same reservation invariants, `mappings` instead of
-PDAs) on **Tempo** + an Ethereum testnet, with a `QUAESTOR_CHAIN` switch in the MCP server.
-Ancestor-**agent** freeze (today freeze/revoke are owner-only). x402 payment integration.
+- **x402** — pay for paywalled HTTP resources directly from an on-chain-enforced budget.
+- **Live EVM dashboard** — the dashboard chain-switch lands once the contract is deployed to a
+  public testnet.
 
 ## License
 
