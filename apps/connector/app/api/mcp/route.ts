@@ -1,6 +1,7 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+// Remote MCP endpoint — OAuth-authenticated, fail-closed 401. (Devnet connector.)
 
 // The remote MCP endpoint. Stateless Streamable HTTP: authenticate the bearer token, resolve the
 // ONE mandate node it is bound to, build a per-request server acting as that node, and handle the
