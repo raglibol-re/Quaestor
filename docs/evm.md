@@ -67,11 +67,21 @@ Add `--verify --etherscan-api-key <key>` for a verified contract on public explo
 | Chain | Chain ID | RPC | Explorer | USDC |
 |---|---|---|---|---|
 | **Base Sepolia** | `84532` | `https://sepolia.base.org` | `https://sepolia.basescan.org` | `0x036CbD53842c5426634e7929541eC2318f3dCF7e` (Circle testnet USDC) — or deploy the mock |
-| **Tempo testnet** | _see Tempo docs_ | _Tempo testnet RPC_ | _Tempo explorer_ | _Tempo stablecoin — or deploy the mock_ |
+| **Tempo Moderato** | `42431` | `https://rpc.moderato.tempo.xyz` | `https://explore.testnet.tempo.xyz` | native stablecoins via the `tempo_fundAddress` faucet — or deploy the mock |
 
 Faucets: Base Sepolia ETH — Coinbase / Alchemy / thirdweb faucets; Base Sepolia USDC — Circle
-faucet. Tempo — see the Tempo testnet faucet in their docs. (Tempo is EVM-compatible; the same
-`Deploy.s.sol` + `@quaestor/evm-sdk` work unchanged — only RPC/chain-id/USDC differ.)
+faucet. Tempo Moderato — **self-serve over RPC**: `cast rpc tempo_fundAddress <your-address> --rpc-url https://rpc.moderato.tempo.xyz`
+(mints 1M of each testnet stablecoin; on Tempo, gas itself is paid in a stablecoin). Tempo is
+EVM-compatible — stock `forge` + `@quaestor/evm-sdk` work unchanged; only RPC/chain-id/USDC differ.
+
+### Live deployments
+
+Both chains run the identical `Quaestor.sol` stack (`shanghai` EVM version, so no MCOPY/transient opcodes):
+
+| Chain | Quaestor | ERC2771Forwarder | MockUSDC |
+|---|---|---|---|
+| **Base Sepolia** (`84532`) | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) | `0x10D587C78896a621328475d000a613a96eD64d6b` | `0xC34F2245E68c0e2EaA631066921f7EAbC6980069` |
+| **Tempo Moderato** (`42431`) | [`0x68Bdc12A933E690A3573E802E8833ffd2243e91c`](https://explore.testnet.tempo.xyz/address/0x68Bdc12A933E690A3573E802E8833ffd2243e91c) | `0x80B31718C2EAd8b77c562B2b11669f72DA043e3a` | `0x86FBBf4B0D089f30dFaf5602C8B3B47bde8ee7fa` |
 
 ## Point the MCP server at an EVM deployment
 
