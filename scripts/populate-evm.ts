@@ -34,6 +34,9 @@ const FORWARDER = process.env.QUAESTOR_FORWARDER as `0x${string}`;
 const USDC = process.env.QUAESTOR_USDC as `0x${string}`;
 const KEY = process.env.QUAESTOR_EVM_PRIVATE_KEY as `0x${string}`;
 let PROJECT_ID = BigInt(process.env.QUAESTOR_PROJECT_ID || "7");
+// Some chains (e.g. Tempo) meter gas several× higher, so the forwarder's default inner gas is too
+// low. Override per-chain with QUAESTOR_FWD_GAS.
+const FWD_GAS = process.env.QUAESTOR_FWD_GAS ? BigInt(process.env.QUAESTOR_FWD_GAS) : undefined;
 
 async function main() {
   const chain = defineChain({ id: CHAIN_ID, name: "base", nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 }, rpcUrls: { default: { http: [RPC] } } });
@@ -72,7 +75,7 @@ async function main() {
 
   const alloc = async (parentAgent: LocalAccount, parentKey: Hex, child: LocalAccount, label: string, amount: string, perTx: string, canDelegate = false) => {
     await wait(
-      await client.allocateChildForwarded({ agentAccount: parentAgent, relayerWalletClient: ownerWallet, parentKey, childAgent: child.address, label, amount: toBaseUnits(amount), perTx: toBaseUnits(perTx), canDelegate }),
+      await client.allocateChildForwarded({ agentAccount: parentAgent, relayerWalletClient: ownerWallet, parentKey, childAgent: child.address, label, amount: toBaseUnits(amount), perTx: toBaseUnits(perTx), canDelegate, gas: FWD_GAS }),
       `${label} <- ${amount} USDC (${perTx}/tx, gasless)`
     );
   };
@@ -90,7 +93,7 @@ async function main() {
   const merchants = Array.from({ length: 3 }, () => privateKeyToAccount(generatePrivateKey()).address);
   const spend = async (agent: LocalAccount, budget: Hex, m: number, amount: string, who: string) => {
     await wait(
-      await client.spendForwarded({ agentAccount: agent, relayerWalletClient: ownerWallet, budgetKey: budget, recipient: merchants[m], amount: toBaseUnits(amount) }),
+      await client.spendForwarded({ agentAccount: agent, relayerWalletClient: ownerWallet, budgetKey: budget, recipient: merchants[m], amount: toBaseUnits(amount), gas: FWD_GAS }),
       `${who} pays ${amount} USDC -> merchant${m + 1} (gasless)`
     );
   };
@@ -102,7 +105,7 @@ async function main() {
 
   // Freeze the writer branch (ancestor-agent freeze, gasless) to show enforcement in the UI.
   await wait(
-    await client.agentSetStatusForwarded({ agentAccount: orch, relayerWalletClient: ownerWallet, budgetKey: writerBudget, freeze: true }),
+    await client.agentSetStatusForwarded({ agentAccount: orch, relayerWalletClient: ownerWallet, budgetKey: writerBudget, freeze: true, gas: FWD_GAS }),
     "orchestrator FREEZES writer (gasless ancestor-agent freeze)"
   );
 
