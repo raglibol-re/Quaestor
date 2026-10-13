@@ -37,15 +37,16 @@ async function main() {
   const [project] = findProjectPda(owner.publicKey, projectId);
   const [rootBudget] = findBudgetPda(project, owner.publicKey);
 
-  console.log("setup: mint + project + deposit 50 USDC on devnet...");
+  console.log("setup: mint + project + deposit 250 USDC on devnet...");
   const mint = await spl.createMint(conn, owner, owner.publicKey, null, 6);
   await client.createProject({ owner: owner.publicKey, mint, projectId, label: "acme-research", feePayer: owner.publicKey }).rpc();
   const ownerAta = await spl.getOrCreateAssociatedTokenAccount(conn, owner, mint, owner.publicKey);
-  await spl.mintTo(conn, owner, mint, ownerAta.address, owner, 50_000_000n);
-  await (await client.deposit({ depositor: owner.publicKey, project, from: ownerAta.address, amount: toBaseUnits("50") })).rpc();
+  await spl.mintTo(conn, owner, mint, ownerAta.address, owner, 250_000_000n);
+  await (await client.deposit({ depositor: owner.publicKey, project, from: ownerAta.address, amount: toBaseUnits("250") })).rpc();
 
   // Agents (hold no SOL; owner relays + pays). budget PDA = findBudgetPda(project, agent).
-  const orch = Keypair.generate(), research = Keypair.generate(), writer = Keypair.generate(), scraper = Keypair.generate();
+  const orch = Keypair.generate(), research = Keypair.generate(), writer = Keypair.generate();
+  const analyst = Keypair.generate(), scraper = Keypair.generate(), indexer = Keypair.generate(), editor = Keypair.generate();
   const bud = (a: Keypair) => findBudgetPda(project, a.publicKey)[0];
 
   const allocate = async (authority: Keypair | null, parent: typeof rootBudget, child: Keypair, label: string, amount: string, perTx: string | null, canDelegate = false) => {
@@ -58,22 +59,32 @@ async function main() {
     await b.signers(signers).rpc();
     console.log(`  ${label} <- ${amount} USDC${perTx ? ` (${perTx}/tx)` : ""}`);
   };
-  await allocate(null, rootBudget, orch, "orchestrator", "30", null, true);
-  await allocate(orch, bud(orch), research, "research", "12", "3", true);
-  await allocate(orch, bud(orch), writer, "writer", "6", "2");
-  await allocate(research, bud(research), scraper, "scraper", "4", "1");
+  // orchestrator holds 180; carves research/writer/analyst; research sub-delegates scraper/indexer;
+  // writer sub-delegates editor — a 3-level tree that only tightens down each branch.
+  await allocate(null, rootBudget, orch, "orchestrator", "180", null, true);
+  await allocate(orch, bud(orch), research, "research", "80", "10", true);
+  await allocate(orch, bud(orch), writer, "writer", "50", "5", true);
+  await allocate(orch, bud(orch), analyst, "analyst", "30", "5");
+  await allocate(research, bud(research), scraper, "scraper", "30", "3");
+  await allocate(research, bud(research), indexer, "indexer", "20", "2");
+  await allocate(writer, bud(writer), editor, "editor", "15", "3");
 
-  // Merchants + real spends (agent signs, relayer pays).
-  const merchants = await Promise.all(Array.from({ length: 3 }, () => Keypair.generate()).map((m) => spl.getOrCreateAssociatedTokenAccount(conn, owner, mint, m.publicKey).then((a) => a.address)));
+  // Merchants + real spends (agent signs, relayer pays) — spread across data/compute/API vendors.
+  const merchants = await Promise.all(Array.from({ length: 5 }, () => Keypair.generate()).map((m) => spl.getOrCreateAssociatedTokenAccount(conn, owner, mint, m.publicKey).then((a) => a.address)));
   const spend = async (agent: Keypair, budget: typeof rootBudget, m: number, amount: string, who: string) => {
     await (await client.spend({ agent: agent.publicKey, project, budget, recipient: merchants[m], amount: toBaseUnits(amount) })).signers([agent]).rpc();
     console.log(`  ${who} pays ${amount} USDC -> merchant${m + 1}`);
   };
-  await spend(research, bud(research), 0, "2.5", "research");
-  await spend(research, bud(research), 1, "1.0", "research");
-  await spend(scraper, bud(scraper), 2, "0.8", "scraper");
-  await spend(scraper, bud(scraper), 0, "0.5", "scraper");
-  await spend(writer, bud(writer), 1, "1.5", "writer");
+  await spend(research, bud(research), 0, "6.0", "research");
+  await spend(research, bud(research), 1, "3.0", "research");
+  await spend(scraper, bud(scraper), 2, "2.0", "scraper");
+  await spend(scraper, bud(scraper), 0, "1.0", "scraper");
+  await spend(indexer, bud(indexer), 3, "1.5", "indexer");
+  await spend(analyst, bud(analyst), 4, "3.0", "analyst");
+  await spend(analyst, bud(analyst), 1, "1.5", "analyst");
+  await spend(editor, bud(editor), 2, "2.0", "editor");
+  await spend(writer, bud(writer), 3, "4.0", "writer");
+  await spend(writer, bud(writer), 4, "2.5", "writer");
 
   // Freeze the writer branch — the ORCHESTRATOR AGENT freezes it (M7 ancestor-agent freeze),
   // no owner signature needed. The devnet program is now upgraded to the M7 code.

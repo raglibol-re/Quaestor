@@ -1,8 +1,11 @@
 export const RPC_URL =
   process.env.NEXT_PUBLIC_RPC_URL || "https://api.devnet.solana.com";
 
-/** Optional default project (base58) so the dashboard loads a tree out of the box. */
-export const DEMO_PROJECT = process.env.NEXT_PUBLIC_DEMO_PROJECT || "";
+/** Optional default project (base58) so the dashboard loads a tree out of the box.
+ *  Default = the seeded "acme-research" devnet demo (populated by scripts/populate-solana.ts:
+ *  250 USDC, 7 agents across 3 levels, 10 spends, a frozen writer branch). */
+export const DEMO_PROJECT =
+  process.env.NEXT_PUBLIC_DEMO_PROJECT || "4USdYpZTWyXK5s1688VPzaszCPsrNPirtDJ2anWgFmNH";
 
 export const CLUSTER = process.env.NEXT_PUBLIC_CLUSTER || "devnet";
 
