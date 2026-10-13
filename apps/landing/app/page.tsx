@@ -84,7 +84,7 @@ export default function Home() {
               <div className="hero-meta">
                 <div>
                   <span className="label">Chains</span>
-                  <span className="mono">Solana · Base</span>
+                  <span className="mono">Solana · Base · Tempo · HyperEVM</span>
                 </div>
                 <div>
                   <span className="label">Access</span>
@@ -265,8 +265,9 @@ export default function Home() {
                 <CodeBlock label="Solana — owner CLI" code={OWNER_SETUP} />
                 <p>
                   On <strong>Base (EVM)</strong> you can skip deployment entirely — the generator below
-                  is prefilled with the live Base Sepolia contracts. To deploy your own, see{" "}
-                  <a href={LINKS.evmDoc}>docs/evm.md</a>.
+                  is prefilled with the live Base Sepolia contracts. Quaestor is also live on{" "}
+                  <strong>Tempo Moderato</strong> and <strong>Hyperliquid</strong> (HyperEVM) — same
+                  contract, same MCP tools. To deploy your own, see <a href={LINKS.evmDoc}>docs/evm.md</a>.
                 </p>
               </div>
             </li>
@@ -395,9 +396,10 @@ export default function Home() {
             <div className="footer-col">
               <span className="label">Onchain</span>
               <a href={LINKS.programExplorer}>Solana program</a>
-              <a href={LINKS.demoProjectExplorer}>Demo project</a>
+              <a href={LINKS.demoProjectExplorer}>Solana demo tree</a>
               <a href={LINKS.evmContract}>Base contract</a>
-              <a href={LINKS.evmForwarder}>Gasless forwarder</a>
+              <a href={LINKS.tempoContract}>Tempo contract</a>
+              <a href={LINKS.hyperliquidDesk}>Hyperliquid desk</a>
             </div>
           </div>
           <p className="footer-line">Every agent answers to a mandate.</p>

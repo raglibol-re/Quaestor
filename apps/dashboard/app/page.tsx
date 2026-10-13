@@ -84,7 +84,7 @@ export default function Home() {
               <div className="hero-meta">
                 <div>
                   <span className="label">Chains</span>
-                  <span className="mono">Solana · Base</span>
+                  <span className="mono">Solana · Base · Tempo · HyperEVM</span>
                 </div>
                 <div>
                   <span className="label">Access</span>
@@ -265,8 +265,9 @@ export default function Home() {
                 <CodeBlock label="Solana — owner CLI" code={OWNER_SETUP} />
                 <p>
                   On <strong>Base (EVM)</strong> you can skip deployment entirely — the generator below
-                  is prefilled with the live Base Sepolia contracts. To deploy your own, see{" "}
-                  <a href={LINKS.evmDoc}>docs/evm.md</a>.
+                  is prefilled with the live Base Sepolia contracts. Quaestor is also live on{" "}
+                  <strong>Tempo Moderato</strong> and <strong>Hyperliquid</strong> (HyperEVM) — same
+                  contract, same MCP tools. To deploy your own, see <a href={LINKS.evmDoc}>docs/evm.md</a>.
                 </p>
               </div>
             </li>
@@ -316,18 +317,21 @@ export default function Home() {
             <p className="eyebrow">No install</p>
             <h2 className="heading-1">Or use it in claude.ai.</h2>
             <p>
-              Quaestor also runs as a remote connector — add one URL in claude.ai (web or app), no local
-              setup. Each connection authorizes over OAuth and is bound to exactly one mandate node; the
-              agent key is custodied server-side and the model never sees it.
+              Quaestor also runs as a live remote connector — add one URL in claude.ai (web or app), no
+              local setup. Each connection authorizes over OAuth and is bound to exactly one mandate node;
+              the agent key is custodied server-side and the model never sees it.
             </p>
+          </div>
+          <div style={{ maxWidth: 640, margin: "0 auto var(--space-8)" }}>
+            <CodeBlock label="claude.ai → Settings → Connectors → Add custom connector" code={LINKS.connectorMcp} />
           </div>
           <div className="grid3">
             <div className="card">
               <span className="numeral">I</span>
               <h3>Add the connector</h3>
               <p>
-                Settings → Connectors → Add custom connector → paste the connector&rsquo;s{" "}
-                <span className="mono">/api/mcp</span> URL.
+                In claude.ai: Settings → Connectors → Add custom connector → paste the URL above and
+                connect.
               </p>
             </div>
             <div className="card">
@@ -392,9 +396,10 @@ export default function Home() {
             <div className="footer-col">
               <span className="label">Onchain</span>
               <a href={LINKS.programExplorer}>Solana program</a>
-              <a href={LINKS.demoProjectExplorer}>Demo project</a>
+              <a href={LINKS.demoProjectExplorer}>Solana demo tree</a>
               <a href={LINKS.evmContract}>Base contract</a>
-              <a href={LINKS.evmForwarder}>Gasless forwarder</a>
+              <a href={LINKS.tempoContract}>Tempo contract</a>
+              <a href={LINKS.hyperliquidDesk}>Hyperliquid desk</a>
             </div>
           </div>
           <p className="footer-line">Every agent answers to a mandate.</p>

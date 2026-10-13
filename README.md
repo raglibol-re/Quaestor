@@ -49,14 +49,17 @@ and **Hyperliquid** (`QuaestorDesk`, a trading-risk mandate), all driven by the 
 | **Landing & MCP setup** | https://quaestor-landing.vercel.app |
 | **Dashboard (live mandate tree)** | https://quaestor-dashboard.vercel.app |
 | **Solana program (devnet)** | [`FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP`](https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet) |
-| **Solana demo project (devnet)** | [`Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr`](https://explorer.solana.com/address/Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr?cluster=devnet) |
-| **EVM contract (Base Sepolia)** | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) |
+| **Solana demo tree (devnet)** | [`4USdYpZTWyXK5s1688VPzaszCPsrNPirtDJ2anWgFmNH`](https://explorer.solana.com/address/4USdYpZTWyXK5s1688VPzaszCPsrNPirtDJ2anWgFmNH?cluster=devnet) |
+| **EVM contract (Base Sepolia · 84532)** | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) |
 | **EVM gasless forwarder (Base Sepolia)** | [`0x10D587C78896a621328475d000a613a96eD64d6b`](https://sepolia.basescan.org/address/0x10D587C78896a621328475d000a613a96eD64d6b) |
+| **EVM contract (Tempo Moderato · 42431)** | [`0x68Bdc12A933E690A3573E802E8833ffd2243e91c`](https://explore.testnet.tempo.xyz/address/0x68Bdc12A933E690A3573E802E8833ffd2243e91c) |
+| **QuaestorDesk (Hyperliquid HyperEVM · 998)** | `0xe704014D856aecD47B797CF47d42648060276d43` |
 
 _The Solana devnet RPC is served by **RPC Fast** (Superteam sidetrack)._
 
-The same hierarchical mandates are enforced on **both** Solana (Anchor) and EVM (`Quaestor.sol`),
-driven by the same MCP tools. Agents hold no gas on either chain.
+The same hierarchical mandates are enforced across **Solana** (Anchor), **Base & Tempo**
+(`Quaestor.sol`), and **Hyperliquid** (`QuaestorDesk`) — all driven by the same MCP tools, and agents
+hold no gas on any chain.
 
 Built solo for the **Colosseum Crypto World's Fair**.
 

@@ -7,23 +7,31 @@ export const LINKS = {
   github: "https://github.com/raglibol-re/Quaestor",
   programExplorer:
     "https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet",
+  // The lived-in "acme-research" devnet tree (scripts/populate-solana.ts): 250 USDC, 7 agents
+  // across 3 levels, 10 spends, a frozen writer branch.
   demoProjectExplorer:
-    "https://explorer.solana.com/address/Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr?cluster=devnet",
+    "https://explorer.solana.com/address/4USdYpZTWyXK5s1688VPzaszCPsrNPirtDJ2anWgFmNH?cluster=devnet",
   evmContract: "https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43",
   evmForwarder: "https://sepolia.basescan.org/address/0x10D587C78896a621328475d000a613a96eD64d6b",
   evmUsdc: "https://sepolia.basescan.org/address/0xC34F2245E68c0e2EaA631066921f7EAbC6980069",
+  // Also live: Tempo Moderato (42431) and Hyperliquid HyperEVM testnet (998) — see docs/evm.md.
+  tempoContract: "https://explore.testnet.tempo.xyz/address/0x68Bdc12A933E690A3573E802E8833ffd2243e91c",
+  hyperliquidDesk: "https://github.com/raglibol-re/Quaestor/blob/main/docs/evm.md",
   mcpSetupDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/mcp-setup.md",
   evmDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/evm.md",
   remoteConnectorDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/remote-connector.md",
+  connectorMcp: "https://quaestor-connector.vercel.app/api/mcp",
 } as const;
 
 // Live Base Sepolia deployment — prefilled defaults for the EVM wizard (docs/evm.md).
+// project = the lived-in "acme-research" tree (scripts/populate-evm.ts): 50 USDC, a 4-level tree
+// with real gasless spends and a frozen writer branch.
 export const EVM_DEFAULTS = {
   rpcUrl: "https://sepolia.base.org",
   contract: "0xe704014D856aecD47B797CF47d42648060276d43",
   forwarder: "0x10D587C78896a621328475d000a613a96eD64d6b",
   chainId: "84532",
-  project: "0x5faf71ed8ff27d66fb149ff610ef8bbd911057c387bfc4d12213653d27d11346",
+  project: "0xf47c977ba5a30f063d199af1956ebffe5581347d370c77f622dfc54efe2bb579",
 } as const;
 
 export const SOLANA_DEFAULTS = {

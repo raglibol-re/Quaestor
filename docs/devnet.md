@@ -2,9 +2,12 @@
 
 - **Program id:** `FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP` (BPFLoaderUpgradeable, authority = deployer)
 - **Cluster:** devnet
-- **Demo project:** `Bgo4nN4D5mVB7yjT5ymcGjhA83k23fbFPf5Ta44L3Kkr`
-  - test USDC mint: `CQGHbRTAjruy7Gw47cemenSfDq7gxDjwF8QZfXoxkhdQ`
-  - tree: root 100 → orchestrator 60 → research 20 (5/tx) + writer 10 (2/tx)
+- **Demo project:** `4USdYpZTWyXK5s1688VPzaszCPsrNPirtDJ2anWgFmNH` (label `acme-research`)
+  - test USDC mint: `FsaEAmm2K6aek6gidM7rVnwjQbjs6KgCHMq9akwwByFh`
+  - lived-in tree (`scripts/populate-solana.ts`): 250 USDC → orchestrator 180 →
+    research 80 (10/tx) / writer 50 (5/tx, **frozen** by the orchestrator agent) / analyst 30 (5/tx);
+    research → scraper 30 (3/tx) / indexer 20 (2/tx); writer → editor 15 (3/tx); 10 real spends
+    across 5 merchants.
 
 ## RPC note
 
