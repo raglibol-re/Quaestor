@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="1200" height="480" role="img" aria-labelledby="t d" font-family="'IBM Plex Sans','Segoe UI',system-ui,sans-serif">
+  <title id="t">Quaestor — on-chain mandate tree</title>
+  <desc id="d">An orchestrator agent funds a research sub-mandate; research pays within its per-transaction limit; an over-limit spend is rejected on-chain; the owner freezes the orchestrator so the whole subtree stops; then revokes and reclaims the unused balance back up the tree.</desc>
+
+  <defs>
+    <!-- aurum "reserved for children" hatch -->
+    <pattern id="resv" width="9" height="9" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+      <rect width="9" height="9" fill="#33280f"/>
+      <rect width="4.5" height="9" fill="#d9a84e"/>
+    </pattern>
+  </defs>
+
+  <!-- card -->
+  <rect x="10" y="10" width="1180" height="460" rx="18" fill="#121110" stroke="#2e2b27" stroke-width="1.5"/>
+
+  <!-- ============ header (static) ============ -->
+  <g transform="translate(52,30) scale(0.46)" stroke="#4fb39a" fill="none">
+    <circle cx="28" cy="28" r="19" stroke-width="6"/>
+    <path d="M41 41 L50 50 M50 50 H59 M50 50 V59" stroke-width="5" stroke-linecap="square"/>
+    <rect x="56" y="47" width="6" height="6" fill="#4fb39a" stroke="none"/>
+    <rect x="47" y="56" width="6" height="6" fill="#4fb39a" stroke="none"/>
+  </g>
+  <text x="96" y="58" font-family="'Instrument Serif',Georgia,'Times New Roman',serif" font-size="34" fill="#ede7dc">Quaestor</text>
+  <text x="96" y="86" font-family="'Instrument Serif',Georgia,serif" font-size="19" font-style="italic" fill="#a39b8e">Give your agent a mandate, not a wallet.</text>
+  <text x="1148" y="54" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="19">
+    <tspan fill="#a39b8e">vault </tspan><tspan fill="#ede7dc">10.00 USDC</tspan>
+  </text>
+  <line x1="52" y1="108" x2="1148" y2="108" stroke="#2e2b27" stroke-width="1"/>
+
+  <!-- ============ connector ============ -->
+  <path d="M80 232 V304 H116" fill="none" stroke="#6e675d" stroke-width="1.5">
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.16;0.22;1" dur="14s" repeatCount="indefinite"/>
+  </path>
+
+  <!-- ============ orchestrator node ============ -->
+  <g>
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.06;0.12;1" dur="14s" repeatCount="indefinite"/>
+    <animateTransform attributeName="transform" type="translate" values="0 10;0 10;0 0;0 0" keyTimes="0;0.06;0.12;1" dur="14s" repeatCount="indefinite"/>
+
+    <rect x="52" y="128" width="1096" height="104" rx="10" fill="#1b1a18" stroke="#2e2b27"/>
+    <text x="80" y="184" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="15" fill="#a39b8e">[ I ]</text>
+    <text x="132" y="186" font-size="22" fill="#ede7dc">orchestrator</text>
+    <text x="1000" y="184" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="24" fill="#ede7dc">6.00 <tspan font-size="14" fill="#a39b8e">USDC</tspan></text>
+
+    <!-- meter: reserved_for_children (aurum hatch) over a sunken track -->
+    <rect x="80" y="200" width="920" height="12" rx="3" fill="#0c0b0a"/>
+    <rect x="80" y="200" height="12" rx="3" fill="url(#resv)">
+      <animate attributeName="width" values="0;0;307;307;154;154" keyTimes="0;0.16;0.24;0.80;0.86;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+
+    <!-- reclaim payoff -->
+    <text x="300" y="226" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="13" fill="#d9a84e" opacity="0">+1.00 reclaimed
+      <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.81;0.86;0.95;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+
+    <!-- status badges (ACTIVE -> FROZEN) -->
+    <g>
+      <rect x="1016" y="142" width="112" height="28" rx="4" fill="#17302a" stroke="#4fb39a" stroke-opacity="0.45"/>
+      <text x="1072" y="161" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" letter-spacing="1.5" fill="#4fb39a">ACTIVE</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.06;0.12;0.62;0.64;1" dur="14s" repeatCount="indefinite"/>
+    </g>
+    <g opacity="0">
+      <rect x="1016" y="142" width="112" height="28" rx="4" fill="#1c2633" stroke="#8fa9c7" stroke-opacity="0.55"/>
+      <text x="1072" y="161" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" letter-spacing="1.5" fill="#8fa9c7">FROZEN</text>
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.62;0.64;1" dur="14s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- freeze tint -->
+    <rect x="52" y="128" width="1096" height="104" rx="10" fill="#8fa9c7" opacity="0" pointer-events="none">
+      <animate attributeName="opacity" values="0;0;0.13;0.13" keyTimes="0;0.62;0.66;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- ============ research node ============ -->
+  <g>
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.16;0.22;1" dur="14s" repeatCount="indefinite"/>
+    <animateTransform attributeName="transform" type="translate" values="0 10;0 10;0 0;0 0" keyTimes="0;0.16;0.22;1" dur="14s" repeatCount="indefinite"/>
+
+    <rect x="116" y="252" width="1032" height="104" rx="10" fill="#1b1a18" stroke="#2e2b27"/>
+    <text x="144" y="308" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="15" fill="#a39b8e">[ II ]</text>
+    <text x="200" y="310" font-size="22" fill="#ede7dc">research</text>
+    <text x="320" y="310" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="13" fill="#a39b8e">· max 0.50 / tx</text>
+    <text x="1000" y="308" text-anchor="end" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="24" fill="#ede7dc">2.00 <tspan font-size="14" fill="#a39b8e">USDC</tspan></text>
+
+    <!-- meter: spent (verdigris) grows over a sunken track -->
+    <rect x="144" y="324" width="856" height="12" rx="3" fill="#0c0b0a"/>
+    <rect x="144" y="324" height="12" rx="3" fill="#4fb39a">
+      <animate attributeName="width" values="0;0;428;428" keyTimes="0;0.30;0.40;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+    <text x="144" y="350" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" fill="#a39b8e" opacity="0">1.00 of 2.00 spent
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.38;0.42;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <!-- two payment ticks -->
+    <text x="470" y="318" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="15" fill="#4fb39a" opacity="0">✓
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.32;0.35;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <text x="640" y="318" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="15" fill="#4fb39a" opacity="0">✓
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.37;0.40;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+
+    <!-- status badges (ACTIVE -> FROZEN -> REVOKED) -->
+    <g>
+      <rect x="1016" y="266" width="112" height="28" rx="4" fill="#17302a" stroke="#4fb39a" stroke-opacity="0.45"/>
+      <text x="1072" y="285" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" letter-spacing="1.5" fill="#4fb39a">ACTIVE</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.16;0.22;0.66;0.68;1" dur="14s" repeatCount="indefinite"/>
+    </g>
+    <g opacity="0">
+      <rect x="1016" y="266" width="112" height="28" rx="4" fill="#1c2633" stroke="#8fa9c7" stroke-opacity="0.55"/>
+      <text x="1072" y="285" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" letter-spacing="1.5" fill="#8fa9c7">FROZEN</text>
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.66;0.68;0.80;0.82;1" dur="14s" repeatCount="indefinite"/>
+    </g>
+    <g opacity="0">
+      <rect x="1016" y="266" width="112" height="28" rx="4" fill="#3a1c15" stroke="#e8664a" stroke-opacity="0.55"/>
+      <text x="1072" y="285" text-anchor="middle" font-family="'IBM Plex Mono',ui-monospace,Menlo,monospace" font-size="12" letter-spacing="1.5" fill="#e8664a">REVOKED</text>
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.80;0.82;1" dur="14s" repeatCount="indefinite"/>
+    </g>
+
+    <!-- rejected flash (two pulses) -->
+    <rect x="116" y="252" width="1032" height="104" rx="10" fill="#e8664a" opacity="0" pointer-events="none">
+      <animate attributeName="opacity" values="0;0;0.18;0;0.18;0;0" keyTimes="0;0.45;0.48;0.51;0.54;0.57;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+    <!-- freeze tint -->
+    <rect x="116" y="252" width="1032" height="104" rx="10" fill="#8fa9c7" opacity="0" pointer-events="none">
+      <animate attributeName="opacity" values="0;0;0.13;0.13;0.05;0.05" keyTimes="0;0.66;0.70;0.80;0.84;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+    <!-- revoke dim -->
+    <rect x="116" y="252" width="1032" height="104" rx="10" fill="#0c0b0a" opacity="0" pointer-events="none">
+      <animate attributeName="opacity" values="0;0;0.45;0.45" keyTimes="0;0.80;0.86;1" dur="14s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <!-- ============ reclaim arrow (up the tree) ============ -->
+  <g opacity="0">
+    <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.80;0.84;0.95;1" dur="14s" repeatCount="indefinite"/>
+    <path d="M70 300 V172" fill="none" stroke="#d9a84e" stroke-width="2.5" stroke-dasharray="128" stroke-dashoffset="128">
+      <animate attributeName="stroke-dashoffset" values="128;128;0;0" keyTimes="0;0.80;0.87;1" dur="14s" repeatCount="indefinite"/>
+    </path>
+    <polygon points="70,164 63,177 77,177" fill="#d9a84e"/>
+  </g>
+
+  <!-- ============ caption lane ============ -->
+  <line x1="52" y1="410" x2="1148" y2="410" stroke="#2e2b27" stroke-width="1"/>
+  <g text-anchor="middle" font-size="17">
+    <text x="600" y="444" fill="#4fb39a" opacity="0">Owner funds an orchestrator, which carves a research sub-mandate — max 0.50 / tx
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.06;0.09;0.28;0.31;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <text x="600" y="444" fill="#4fb39a" opacity="0">research pays 2 × 0.50 USDC — checked against the whole chain, allowed on-chain
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.30;0.33;0.44;0.47;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <text x="600" y="444" fill="#e8664a" opacity="0">research tries to spend 3.00 USDC — REJECTED on-chain · exceeds the per-tx limit
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.46;0.49;0.60;0.63;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <text x="600" y="444" fill="#8fa9c7" opacity="0">owner freezes the orchestrator — the freeze cascades and the whole subtree stops
+      <animate attributeName="opacity" values="0;0;1;1;0;0" keyTimes="0;0.62;0.65;0.77;0.80;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+    <text x="600" y="444" fill="#d9a84e" opacity="0">revoke + reclaim 1.00 unused USDC — returned up the tree; the 1.00 spent stays spent
+      <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.80;0.84;1" dur="14s" repeatCount="indefinite"/>
+    </text>
+  </g>
+</svg>

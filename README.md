@@ -1,8 +1,34 @@
+<div align="center">
+
+<img src="assets/quaestor-mark.svg" alt="Quaestor" width="76" />
+
 # Quaestor
 
-**Delegable spending authority for AI agents.**
+### _Give your agent a mandate, not a wallet._
 
-> _Give your agent a mandate, not a wallet._
+**Delegable, on-chain-enforced USDC spending mandates for AI agents** — a human funds a tree of
+agents, caps every branch, and can freeze any of it instantly. Enforced in the contract, accessed over **MCP**.
+Same model on **Solana**, **EVM (Base · Tempo)**, and **Hyperliquid**.
+
+<p>
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-4fb39a?style=flat-square&labelColor=1b1a18">
+  <img alt="Solana devnet" src="https://img.shields.io/badge/Solana-devnet-4fb39a?style=flat-square&labelColor=1b1a18">
+  <img alt="Base Sepolia" src="https://img.shields.io/badge/Base-Sepolia-8fa9c7?style=flat-square&labelColor=1b1a18">
+  <img alt="Hyperliquid" src="https://img.shields.io/badge/Hyperliquid-HyperEVM-d9a84e?style=flat-square&labelColor=1b1a18">
+  <img alt="Access: MCP" src="https://img.shields.io/badge/Access-9%20MCP%20tools-a39b8e?style=flat-square&labelColor=1b1a18">
+  <img alt="Tests: 58 passing" src="https://img.shields.io/badge/Tests-58%20passing-4fb39a?style=flat-square&labelColor=1b1a18">
+  <img alt="Colosseum" src="https://img.shields.io/badge/Hackathon-Colosseum%20Crypto%20World's%20Fair-d9a84e?style=flat-square&labelColor=1b1a18">
+</p>
+
+**[Landing &amp; setup](https://quaestor-landing.vercel.app)** · **[Live dashboard](https://quaestor-dashboard.vercel.app)** · **[Solana program](https://explorer.solana.com/address/FVytqbLtyRAqshYkP8iacSGHbdT53tZNiLmoTG9Xu5dP?cluster=devnet)** · **[Base contract](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43)** · **[90-sec demo](#the-90-second-demo)**
+
+<br/>
+
+<img src="assets/hero.svg" alt="Quaestor mandate tree — an orchestrator funds a research sub-mandate; research pays within its per-tx limit; an over-limit spend is rejected on-chain; the owner freezes the orchestrator so the whole subtree stops; then revokes and reclaims the unused balance up the tree." width="880" />
+
+</div>
+
+---
 
 A human grants an agent a **Mandate** — an amount, a policy, and a lifetime, bound to
 **one agent key**. The agent can carve **sub-mandates** for the agents it spawns, each
@@ -194,6 +220,7 @@ stablecoin accounts rather than competing with them.
 
 `scripts/demo.sh` runs the whole story live on devnet (each step is a real transaction with an
 explorer link). Paste the printed project address into the dashboard to watch the tree update live.
+This is exactly the sequence animated at the top of this README.
 
 1. Human creates a project and deposits **10 USDC**.
 2. **Orchestrator** agent gets a **6 USDC** mandate.
@@ -256,6 +283,9 @@ limit 0.50 USDC"`). The agent's private key lives in an encrypted local keystore
 
 Solana/Anchor development runs in **WSL2 Ubuntu**. Node tooling runs anywhere.
 
+<details>
+<summary><b>Build &amp; test — one block</b></summary>
+
 ```bash
 pnpm install
 
@@ -275,7 +305,12 @@ pnpm --filter @quaestor/sdk build && pnpm --filter @quaestor/dashboard dev
 Connecting the MCP server to Claude Desktop/Code: see [`docs/mcp-setup.md`](docs/mcp-setup.md).
 Devnet deployment notes: see [`docs/devnet.md`](docs/devnet.md).
 
-### Toolchain (pinned)
+</details>
+
+<details>
+<summary><b>Toolchain (pinned)</b></summary>
+
+<br/>
 
 | Tool | Version |
 |---|---|
@@ -285,6 +320,8 @@ Devnet deployment notes: see [`docs/devnet.md`](docs/devnet.md).
 | `@solana/web3.js` / `@solana/spl-token` | 1.99 / 0.4 |
 | MCP TS SDK | 1.30.1 |
 | Node / pnpm | 22 / 10.17 |
+
+</details>
 
 ---
 
@@ -312,7 +349,10 @@ private keys in git.
 - **Owner CLI** + a **live dashboard**: https://quaestor-dashboard.vercel.app
 - **Reproducible demos** on devnet (Solana) and anvil (EVM gasless + x402) with real explorer links.
 
-### Milestones
+<details>
+<summary><b>Milestones</b></summary>
+
+<br/>
 
 - [x] **M1** Anchor program + LiteSVM tests (the enforcement core)
 - [x] **M2** TS SDK (PDAs, ix builders, mandate-tree fetch)
@@ -326,6 +366,8 @@ private keys in git.
 - [x] **M10** `QUAESTOR_CHAIN` switch — the same MCP tools drive Solana or EVM behind one `ChainOps` interface
 - [x] **M11** On-chain spend attribution — task_id + reason (SPL Memo / `Spent` event) + off-chain log
 - [x] **M12** **QuaestorDesk** — Hyperliquid trading-risk mandate (`QuaestorDesk.sol` + 12 Foundry tests incl. invariant)
+
+</details>
 
 ### Multi-chain
 
