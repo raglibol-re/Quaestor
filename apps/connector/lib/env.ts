@@ -5,6 +5,18 @@ import bs58 from "bs58";
 
 export const CLAUDE_REDIRECT = "https://claude.ai/api/mcp/auth_callback";
 
+// Claude registers via DCR with a redirect under claude.ai / claude.com (the exact path has
+// varied: auth_callback / oauth_callback). Accept any https MCP callback on those hosts.
+function isClaudeCallback(uri: string): boolean {
+  try {
+    const u = new URL(uri);
+    const host = u.hostname.toLowerCase();
+    return u.protocol === "https:" && (host === "claude.ai" || host === "claude.com") && u.pathname.startsWith("/api/mcp/");
+  } catch {
+    return false;
+  }
+}
+
 function req(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`missing required env var ${name}`);
@@ -67,7 +79,18 @@ export function env(): ConnectorEnv {
   return cached;
 }
 
-/** Is a redirect URI allowed? (exact match against the allowlist) */
+/** Is a redirect URI allowed? (exact allowlist OR a Claude MCP callback host) */
 export function isAllowedRedirect(uri: string): boolean {
-  return env().allowedRedirects.includes(uri);
+  return env().allowedRedirects.includes(uri) || isClaudeCallback(uri);
+}
+
+/** Secret values that must never appear in logs/errors (for redaction). */
+export function secretValues(): string[] {
+  const e = env();
+  return [
+    e.databaseUrl,
+    e.masterKey.toString("base64"),
+    Buffer.from(e.jwtSecret).toString("base64"),
+    bs58.encode(e.relayer.secretKey),
+  ].filter(Boolean);
 }

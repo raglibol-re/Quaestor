@@ -7,6 +7,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
+import { SignJWT, jwtVerify } from "jose";
 import assert from "node:assert/strict";
 
 let passed = 0;
@@ -87,6 +88,39 @@ function verifySiws(message, sigB58, ownerB58) {
   const other = bs58.encode(nacl.sign.keyPair().publicKey);
   assert.equal(verifySiws(msg, sig, other), false, "wrong owner fails");
   ok("siws: ed25519 verify binds message + owner");
+}
+
+// --- access-token node binding (the binding comes ONLY from the verified JWT) ---
+{
+  const secret = randomBytes(32);
+  const issuer = "https://connector.example/mcp";
+  const bind = async (node) =>
+    new SignJWT({ chain: "solana", project: "PROJ", node, cid: "qc_x" })
+      .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+      .setSubject(node)
+      .setIssuer(issuer)
+      .setAudience(issuer)
+      .setExpirationTime("15m")
+      .setJti(randomBytes(8).toString("hex"))
+      .sign(secret);
+
+  // Valid token → resolves to exactly its node.
+  const tokA = await bind("NODE_A");
+  const { payload } = await jwtVerify(tokA, secret, { issuer, audience: issuer });
+  assert.equal(payload.node, "NODE_A");
+  assert.equal(payload.project, "PROJ");
+
+  // Wrong signing key → verification throws (→ server returns 401).
+  await assert.rejects(() => jwtVerify(tokA, randomBytes(32), { issuer, audience: issuer }));
+
+  // A token for NODE_A can never be read as NODE_B — node is a signed claim, not client input.
+  const tokB = await bind("NODE_B");
+  const a2 = (await jwtVerify(tokA, secret, { issuer, audience: issuer })).payload.node;
+  const b2 = (await jwtVerify(tokB, secret, { issuer, audience: issuer })).payload.node;
+  assert.equal(a2, "NODE_A");
+  assert.equal(b2, "NODE_B");
+  assert.notEqual(a2, b2);
+  ok("token: node binding is signed, verified, and tamper-proof");
 }
 
 console.log(`\n${passed} checks passed`);

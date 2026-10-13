@@ -16,30 +16,61 @@ import type {
 } from "@quaestor/mcp-server";
 import { builtOpsFor, type Principal } from "./resolve";
 import { provisionAgentKey } from "./custody";
-import { insertInvite } from "./db";
+import { countRecentWrites, insertInvite, logToolCall, type NodeBinding } from "./db";
 import { randomToken, sha256hex } from "./tokens";
 import { env } from "./env";
 
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
+const RATE_WINDOW_SEC = 60;
+const RATE_PER_NODE = Number(process.env.QUAESTOR_RATE_PER_MIN || "10");
+const RATE_PER_IP = RATE_PER_NODE * 3;
 
-/** Build the per-request backend for a token's node, with create_submandate overridden for HTTP. */
-export async function remoteBuiltOps(principal: Principal): Promise<BuiltOps> {
+/**
+ * Build the per-request backend for a token's node. create_submandate is overridden for HTTP
+ * (invite links); write tools (pay, create_submandate) are rate-limited per node + per IP and all
+ * tool outcomes are logged (secret-free). Reads delegate unchanged.
+ */
+export async function remoteBuiltOps(principal: Principal, ip?: string): Promise<BuiltOps> {
   const built = await builtOpsFor(principal);
   if (built.kind !== "budget") throw new Error("remote connector expects a budget backend");
   const inner = built.ops as SolanaOps;
+  const b: NodeBinding = { chain: principal.chain, project: principal.project, mandate_node: principal.node };
+  const ipOrNull = ip ?? null;
+
+  async function guardWrite(): Promise<void> {
+    const { byNode, byIp } = await countRecentWrites(principal.node, ipOrNull, RATE_WINDOW_SEC);
+    if (byNode >= RATE_PER_NODE || (ipOrNull && byIp >= RATE_PER_IP)) {
+      throw new Error(
+        `Rate limit exceeded: too many write calls in the last minute — slow down and retry shortly.`
+      );
+    }
+  }
+  async function write<T>(tool: string, run: () => Promise<T>): Promise<T> {
+    await guardWrite();
+    try {
+      const r = await run();
+      await logToolCall(b, tool, true, ipOrNull);
+      return r;
+    } catch (e) {
+      await logToolCall(b, tool, false, ipOrNull);
+      throw e;
+    }
+  }
+
   const ops: ChainOps = {
     describe: () => inner.describe(),
     networkLabel: () => inner.networkLabel(),
     payerAddress: () => inner.payerAddress(),
     getMyBudget: () => inner.getMyBudget(),
-    pay: (r: string, a: string, attr?: Attribution) => inner.pay(r, a, attr),
+    pay: (r: string, a: string, attr?: Attribution) => write("pay", () => inner.pay(r, a, attr)),
     listSubagents: () => inner.listSubagents(),
     freezeSubagent: (l: string, f: boolean) => inner.freezeSubagent(l, f),
     revokeSubagent: (l: string) => inner.revokeSubagent(l),
     reclaimSubagent: (l: string) => inner.reclaimSubagent(l),
     getHistory: (n: number) => inner.getHistory(n),
     toFriendlyError: (e: unknown) => inner.toFriendlyError(e),
-    createSubagentBudget: (p: CreateSubagentParams) => createRemoteSubmandate(inner, principal, p),
+    createSubagentBudget: (p: CreateSubagentParams) =>
+      write("create_submandate", () => createRemoteSubmandate(inner, principal, p)),
   };
   return { kind: "budget", ops };
 }

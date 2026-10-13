@@ -83,6 +83,20 @@ CREATE TABLE IF NOT EXISTS agent_key (
   PRIMARY KEY (chain, project, node)
 );
 
+-- Tool-call audit log (secret-free) — also the backing store for write-tool rate limiting.
+CREATE TABLE IF NOT EXISTS tool_call (
+  id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  chain       text NOT NULL,
+  project     text NOT NULL,
+  node        text NOT NULL,
+  tool        text NOT NULL,
+  ok          boolean NOT NULL,
+  ip          text,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_tool_call_rate ON tool_call (node, tool, created_at);
+CREATE INDEX IF NOT EXISTS idx_tool_call_ip   ON tool_call (ip, created_at);
+
 CREATE INDEX IF NOT EXISTS idx_auth_code_expires     ON auth_code (expires_at);
 CREATE INDEX IF NOT EXISTS idx_access_token_expires  ON access_token (expires_at);
 CREATE INDEX IF NOT EXISTS idx_refresh_token_expires ON refresh_token (expires_at);

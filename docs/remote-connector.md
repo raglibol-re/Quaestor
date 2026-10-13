@@ -17,8 +17,16 @@ Code: `apps/connector` (Next.js App Router, Vercel). Live MCP endpoint: `<deploy
 | Enforcement | onchain | onchain (unchanged — the server is convenience only) |
 
 Non-negotiables, all enforced here: **a token can only ever address its one node** (no tool input
-selects the acting agent); **the model never sees a key, passphrase, refresh token, or relayer key**
-(never in a tool result, error, or log); **devnet/testnet only** (the connector refuses mainnet RPC).
+selects the acting agent; the binding is a signed JWT claim); **the model never sees a key,
+passphrase, refresh token, or relayer key** (never in a tool result, error, or log — logs are
+secret-redacted); **devnet/testnet only** (the connector refuses mainnet RPC).
+
+Hardening: unauthenticated requests to `/api/mcp` get a **fail-closed 401** with
+`WWW-Authenticate: Bearer resource_metadata="…"` (derived from the request, so it holds even on a
+misconfigured deploy). Write tools (`pay`, `create_submandate`, and `pay_x402`'s payment) are
+**rate-limited** per node and per IP (`QUAESTOR_RATE_PER_MIN`, default 10/min/node); every tool call
+is **logged** to `tool_call` (node, tool, ok, ip) — no secrets. The DCR redirect allowlist accepts
+Claude's callbacks on `claude.ai`/`claude.com`.
 
 ## How a connection works
 
@@ -74,7 +82,9 @@ flow (owner SIWS, or an invite code), pick the node, and the Quaestor tools appe
 ## Verify
 
 - Unit (pure, no devnet): `node apps/connector/test/crypto.test.mjs` — custody envelope round-trip +
-  tamper rejection, PKCE S256, SIWS Ed25519.
+  tamper rejection, PKCE S256, SIWS Ed25519, access-token node binding (tamper-proof).
+- Auth matrix (against a live deploy, no secrets needed): `node apps/connector/test/http-auth.mjs
+  [baseUrl]` — no token → 401 + `WWW-Authenticate`, bad token → 401, GET → 405.
 - Discovery: `curl <deployment>/.well-known/oauth-protected-resource` and `/oauth-authorization-server`.
 - MCP Inspector (HTTP): point it at `<deployment>/api/mcp`, complete OAuth, list tools.
 - End-to-end (devnet): OAuth → `get_my_mandate`; `pay` within a limit succeeds, over-limit returns a

@@ -149,3 +149,30 @@ export async function listAgentKeys(chain: string, project: string): Promise<Age
   return (await sql()`SELECT chain, project, node, pubkey, curve, enc_blob
     FROM agent_key WHERE chain = ${chain} AND project = ${project} ORDER BY created_at`) as AgentKeyRow[];
 }
+
+// --- tool_call (audit log + rate-limit backing store) ---
+const WRITE_TOOLS = ["pay", "create_submandate"];
+
+export async function logToolCall(b: NodeBinding, tool: string, okFlag: boolean, ip: string | null): Promise<void> {
+  await sql()`INSERT INTO tool_call (chain, project, node, tool, ok, ip)
+    VALUES (${b.chain}, ${b.project}, ${b.mandate_node}, ${tool}, ${okFlag}, ${ip})`;
+}
+
+/** Count recent WRITE tool calls in the last `windowSec` seconds, by node and (optionally) by IP. */
+export async function countRecentWrites(
+  node: string,
+  ip: string | null,
+  windowSec: number
+): Promise<{ byNode: number; byIp: number }> {
+  const n = (await sql()`SELECT count(*)::int AS c FROM tool_call
+    WHERE node = ${node} AND tool = ANY(${WRITE_TOOLS})
+      AND created_at > now() - make_interval(secs => ${windowSec})`) as { c: number }[];
+  let byIp = 0;
+  if (ip) {
+    const r = (await sql()`SELECT count(*)::int AS c FROM tool_call
+      WHERE ip = ${ip} AND tool = ANY(${WRITE_TOOLS})
+        AND created_at > now() - make_interval(secs => ${windowSec})`) as { c: number }[];
+    byIp = r[0]?.c ?? 0;
+  }
+  return { byNode: n[0]?.c ?? 0, byIp };
+}
