@@ -6,7 +6,8 @@ export const maxDuration = 60;
 // ONE mandate node it is bound to, build a per-request server acting as that node, and handle the
 // JSON-RPC. No tool input can change the acting agent — identity comes only from the token.
 import { handleMcpWeb } from "@quaestor/mcp-server";
-import { builtOpsFor, principalFromBearer } from "@/lib/resolve";
+import { principalFromBearer } from "@/lib/resolve";
+import { remoteBuiltOps } from "@/lib/remoteOps";
 import { env } from "@/lib/env";
 import { cors, preflight } from "@/lib/http";
 
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
   // 2. Resolve the node's custodied backend. Internal errors never leak details to the client.
   let built;
   try {
-    built = await builtOpsFor(principal);
+    built = await remoteBuiltOps(principal);
   } catch (e) {
     console.error("[mcp] resolve error:", (e as Error)?.message ?? e);
     return jsonRpc(500, -32603, "internal error");

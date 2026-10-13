@@ -310,6 +310,45 @@ export default function Home() {
           </ol>
         </section>
 
+        {/* Use in claude.ai */}
+        <section className="wrap section" id="remote">
+          <div className="section-head">
+            <p className="eyebrow">No install</p>
+            <h2 className="heading-1">Or use it in claude.ai.</h2>
+            <p>
+              Quaestor also runs as a remote connector — add one URL in claude.ai (web or app), no local
+              setup. Each connection authorizes over OAuth and is bound to exactly one mandate node; the
+              agent key is custodied server-side and the model never sees it.
+            </p>
+          </div>
+          <div className="grid3">
+            <div className="card">
+              <span className="numeral">I</span>
+              <h3>Add the connector</h3>
+              <p>
+                Settings → Connectors → Add custom connector → paste the connector&rsquo;s{" "}
+                <span className="mono">/api/mcp</span> URL.
+              </p>
+            </div>
+            <div className="card">
+              <span className="numeral">II</span>
+              <h3>Approve by wallet</h3>
+              <p>
+                The project owner signs a Sign-In-With-Solana message and picks one mandate node. A
+                delegated sub-mandate uses a one-time invite code instead — no wallet.
+              </p>
+            </div>
+            <div className="card">
+              <span className="numeral">III</span>
+              <h3>Tools appear</h3>
+              <p>
+                The same nine tools show up in the agent, bound to that node. Limits stay enforced
+                onchain. <a href={LINKS.remoteConnectorDoc}>Set up the connector →</a>
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Tools */}
         <section className="wrap section" id="tools">
           <div className="section-head">

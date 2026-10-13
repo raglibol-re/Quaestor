@@ -7,7 +7,7 @@
     "build": "pnpm --filter @quaestor/sdk build && pnpm --filter @quaestor/mcp-server build && next build",
     "start": "next start -p ${PORT:-3000}",
     "lint": "next lint",
-    "provision": "node --experimental-strip-types scripts/provision-agent.ts"
+    "provision": "node scripts/provision-agent.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.32.1",

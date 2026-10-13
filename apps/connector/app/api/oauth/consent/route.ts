@@ -7,7 +7,7 @@ import { verifyAuthReq } from "@/lib/oauth";
 import { buildSiwsMessage, verifySiws } from "@/lib/siws";
 import { projectOwner } from "@/lib/chain";
 import { env } from "@/lib/env";
-import { getAgentKey, insertAuthCode } from "@/lib/db";
+import { consumeInvite, getAgentKey, getInvite, insertAuthCode } from "@/lib/db";
 import { randomToken, sha256hex } from "@/lib/tokens";
 import { json, oauthError, preflight } from "@/lib/http";
 
@@ -25,10 +25,8 @@ export async function POST(req: Request) {
   } catch {
     return oauthError(400, "invalid_request", "body must be JSON");
   }
-  const { rt, node, nonce, issuedAt, signature } = body;
-  if (!rt || !node || !nonce || !issuedAt || !signature) {
-    return oauthError(400, "invalid_request", "rt, node, nonce, issuedAt, signature required");
-  }
+  const rt = body.rt;
+  if (!rt) return oauthError(400, "invalid_request", "rt required");
 
   let authReq;
   try {
@@ -40,33 +38,48 @@ export async function POST(req: Request) {
   const chain = env().chain;
   const project = env().project.toBase58();
 
-  // The node must be a real custodied node of this project.
-  const key = await getAgentKey(chain, project, node);
-  if (!key) return oauthError(400, "invalid_request", "unknown node");
-
-  // Freshness.
-  const ts = Date.parse(issuedAt);
-  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > SIWS_WINDOW_MS) {
-    return oauthError(400, "invalid_request", "signature expired — restart the flow");
-  }
-
-  // Reconstruct the exact message the owner must have signed and verify vs Project.owner.
-  const message = buildSiwsMessage({
-    project,
-    node,
-    clientId: authReq.clientId,
-    codeChallenge: authReq.codeChallenge,
-    nonce,
-    issuedAt,
-  });
-  let owner: string;
-  try {
-    owner = await projectOwner();
-  } catch {
-    return oauthError(500, "server_error", "could not read project owner");
-  }
-  if (!verifySiws(message, signature, owner)) {
-    return oauthError(403, "access_denied", "signature is not from the project owner");
+  // Resolve the bound node, either via an invite code (no wallet) or owner SIWS.
+  let node: string;
+  if (body.invite) {
+    const inv = await getInvite(sha256hex(body.invite));
+    if (!inv || inv.chain !== chain || inv.project !== project || !inv.child_node) {
+      return oauthError(400, "invalid_grant", "invite invalid, expired, or already used");
+    }
+    if (!(await consumeInvite(sha256hex(body.invite), inv.child_node))) {
+      return oauthError(400, "invalid_grant", "invite already used");
+    }
+    node = inv.child_node;
+  } else {
+    const { node: n, nonce, issuedAt, signature } = body;
+    if (!n || !nonce || !issuedAt || !signature) {
+      return oauthError(400, "invalid_request", "node, nonce, issuedAt, signature (or invite) required");
+    }
+    // The node must be a real custodied node of this project.
+    if (!(await getAgentKey(chain, project, n))) return oauthError(400, "invalid_request", "unknown node");
+    // Freshness.
+    const ts = Date.parse(issuedAt);
+    if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > SIWS_WINDOW_MS) {
+      return oauthError(400, "invalid_request", "signature expired — restart the flow");
+    }
+    // Reconstruct the exact message the owner must have signed and verify vs Project.owner.
+    const message = buildSiwsMessage({
+      project,
+      node: n,
+      clientId: authReq.clientId,
+      codeChallenge: authReq.codeChallenge,
+      nonce,
+      issuedAt,
+    });
+    let owner: string;
+    try {
+      owner = await projectOwner();
+    } catch {
+      return oauthError(500, "server_error", "could not read project owner");
+    }
+    if (!verifySiws(message, signature, owner)) {
+      return oauthError(403, "access_denied", "signature is not from the project owner");
+    }
+    node = n;
   }
 
   // Mint a single-use, node-bound code.

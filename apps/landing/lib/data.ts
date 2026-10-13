@@ -13,6 +13,7 @@ export const LINKS = {
   evmUsdc: "https://sepolia.basescan.org/address/0xC34F2245E68c0e2EaA631066921f7EAbC6980069",
   mcpSetupDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/mcp-setup.md",
   evmDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/evm.md",
+  remoteConnectorDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/remote-connector.md",
 } as const;
 
 // Live Base Sepolia deployment — prefilled defaults for the EVM wizard (docs/evm.md).

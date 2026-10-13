@@ -12,6 +12,14 @@ export {
   InjectedKeypairSigner,
   type SolanaAgentSigner,
 } from "./signer";
-export type { ChainOps } from "./chainOps";
+export type {
+  ChainOps,
+  Attribution,
+  CreateSubagentParams,
+  CreateSubagentResult,
+  PayResult,
+  StatusResult,
+  ReclaimResult,
+} from "./chainOps";
 export { BudgetRejection } from "./chainOps";
 export type { McpConfig, EvmConfig } from "./config";

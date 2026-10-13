@@ -32,6 +32,7 @@ export default function Consent() {
   const [rt, setRt] = useState<string | null>(null);
   const [prep, setPrep] = useState<Prep | null>(null);
   const [selected, setSelected] = useState<string>("");
+  const [invite, setInvite] = useState<string>("");
   const [err, setErr] = useState<string>("");
   const [busy, setBusy] = useState(false);
 
@@ -98,6 +99,29 @@ export default function Consent() {
       window.location.href = d.redirect as string;
     } catch (e) {
       setErr((e as Error).message || "Signing was cancelled.");
+      setBusy(false);
+    }
+  }
+
+  async function approveInvite() {
+    setErr("");
+    if (!rt || !invite.trim()) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/oauth/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rt, invite: invite.trim() }),
+      });
+      const d = await res.json();
+      if (!res.ok) {
+        setErr(d.error_description || d.error || "Invite rejected.");
+        setBusy(false);
+        return;
+      }
+      window.location.href = d.redirect as string;
+    } catch (e) {
+      setErr((e as Error).message || "Failed.");
       setBusy(false);
     }
   }
@@ -176,6 +200,34 @@ export default function Consent() {
               Connect the owner wallet <span className="mono">{short(prep.owner)}</span> to approve.
             </p>
           )}
+
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 20, paddingTop: 16 }}>
+            <p className="label">Have an invite code?</p>
+            <p className="muted" style={{ fontSize: 12, margin: "4px 0 8px" }}>
+              Connecting a delegated sub-mandate? Paste the invite code instead — no wallet needed.
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                value={invite}
+                onChange={(e) => setInvite(e.target.value)}
+                placeholder="invite code"
+                className="mono"
+                style={{
+                  flex: 1,
+                  minWidth: 180,
+                  background: "var(--surface-sunken)",
+                  border: "1px solid var(--line-strong)",
+                  color: "var(--ink)",
+                  borderRadius: 4,
+                  height: 40,
+                  padding: "0 12px",
+                }}
+              />
+              <button className="btn" onClick={approveInvite} disabled={busy || !invite.trim()}>
+                {busy ? "…" : "Use invite"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
