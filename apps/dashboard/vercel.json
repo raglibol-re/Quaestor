@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm --filter @quaestor/sdk build && pnpm --filter @quaestor/evm-sdk build && next build"
+}
