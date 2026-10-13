@@ -75,9 +75,10 @@ async function main() {
   await spend(scraper, bud(scraper), 0, "0.5", "scraper");
   await spend(writer, bud(writer), 1, "1.5", "writer");
 
-  // Freeze the writer branch (owner freeze; the live devnet program predates M7's agent freeze).
-  await client.setStatus({ owner: owner.publicKey, project, budget: bud(writer), freeze: true }).rpc();
-  console.log("  owner FREEZES writer branch");
+  // Freeze the writer branch — the ORCHESTRATOR AGENT freezes it (M7 ancestor-agent freeze),
+  // no owner signature needed. The devnet program is now upgraded to the M7 code.
+  await (await client.agentSetStatus({ authority: orch.publicKey, project, budget: bud(writer), freeze: true })).signers([orch]).rpc();
+  console.log("  orchestrator AGENT freezes writer branch (M7 ancestor-agent freeze)");
 
   console.log("\nfinal tree:");
   const tree = await client.fetchBudgetTree(project);
