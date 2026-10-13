@@ -83,6 +83,38 @@ Both chains run the identical `Quaestor.sol` stack (`shanghai` EVM version, so n
 | **Base Sepolia** (`84532`) | [`0xe704014D856aecD47B797CF47d42648060276d43`](https://sepolia.basescan.org/address/0xe704014D856aecD47B797CF47d42648060276d43) | `0x10D587C78896a621328475d000a613a96eD64d6b` | `0xC34F2245E68c0e2EaA631066921f7EAbC6980069` |
 | **Tempo Moderato** (`42431`) | [`0x68Bdc12A933E690A3573E802E8833ffd2243e91c`](https://explore.testnet.tempo.xyz/address/0x68Bdc12A933E690A3573E802E8833ffd2243e91c) | `0x80B31718C2EAd8b77c562B2b11669f72DA043e3a` | `0x86FBBf4B0D089f30dFaf5602C8B3B47bde8ee7fa` |
 
+## QuaestorDesk on Hyperliquid (HyperEVM testnet)
+
+The trading-risk mandate (`QuaestorDesk.sol`) is deployed on **HyperEVM testnet (chain `998`,
+`https://rpc.hyperliquid-testnet.xyz/evm`)** via `script/DeployDesk.s.sol`:
+
+| Contract | Address |
+|---|---|
+| **QuaestorDesk** | `0xe704014D856aecD47B797CF47d42648060276d43` |
+| ERC2771Forwarder | `0x10D587C78896a621328475d000a613a96eD64d6b` |
+| MockUSDC | `0xC34F2245E68c0e2EaA631066921f7EAbC6980069` |
+
+Deploy notes learned the hard way:
+
+- **Big-block mode was NOT needed.** HyperEVM small blocks cap at **3M gas**; each of the three
+  contract deploys is < 3M (~3.7M total across three separate txs), so they fit small blocks.
+  Big-block mode (the `evmUserModify {usingBigBlocks:true}` HyperCore action) is only required when a
+  *single* deploy tx exceeds the small-block limit.
+- **Force the gas price.** HyperEVM testnet gas is **0.1 gwei**. `forge`'s padded pre-flight reserve
+  can exceed a thinly-funded wallet, so deploy with `--with-gas-price 100000000` (the deploy cost
+  ~0.00037 HYPE):
+  ```bash
+  forge script script/DeployDesk.s.sol:DeployDesk \
+    --rpc-url https://rpc.hyperliquid-testnet.xyz/evm --broadcast --slow --with-gas-price 100000000
+  ```
+- Forge warns `EIP-3855 (PUSH0) not supported` for chain 998, but it **is** — verified by calling the
+  live contract's view functions (`owner()`, `usdc()`, `MAX_ASSETS()`) after deploy; all return correctly.
+- **Runtime HyperCore wiring still flagged `VERIFY`.** The contract + all mandate logic
+  (create/deposit/freeze/revoke + the pre-trade risk checks) are live and callable. A *live* order
+  (`placeOrder` → CoreWriter `0x3333…`, `_readEquity` → read precompile `0x0800`) additionally needs
+  the exact CoreWriter action byte-layout / precompile addresses confirmed against the current HL docs,
+  the desk funded on HyperCore, and possibly big-block mode for the order tx.
+
 ## Point the MCP server at an EVM deployment
 
 Set `QUAESTOR_CHAIN=base` (or `tempo`) and the EVM env (see `.env.example`):

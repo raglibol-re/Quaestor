@@ -39,6 +39,6 @@ Ready-to-paste answers + a pre-submission checklist. Deadline: **2026-10-12, 11:
 - [ ] Add the video URL to the Colosseum form + `PITCH.md`.
 - [ ] Set `QUAESTOR_RPC_URL` / `NEXT_PUBLIC_RPC_URL` to the RPC Fast endpoint (verify it serves `getProgramAccounts` for the dashboard tree-fetch).
 - [ ] (Optional, go-live) redeploy `Quaestor.sol` to Base Sepolia + Tempo **with attribution** (`forge script Deploy.s.sol --broadcast`); set the dashboard `NEXT_PUBLIC_EVM_*` vars on Vercel to light up the EVM tab.
-- [ ] (Optional, go-live) deploy `QuaestorDesk` to HyperEVM testnet (enable big-block first) and run the fork test.
+- [x] Deploy `QuaestorDesk` to HyperEVM testnet (998) — live at `0xe704014D856aecD47B797CF47d42648060276d43`, view functions verified on-chain (big-block mode not needed; each deploy tx < 3M gas). See `docs/evm.md`. Remaining for a *live order*: confirm CoreWriter/precompile encodings + fund the desk on HyperCore.
 - [ ] Submit the Colosseum form (all tracks), Superteam RPC Fast, University Prize.
 - [ ] Post the build-in-public update on Dapping.
