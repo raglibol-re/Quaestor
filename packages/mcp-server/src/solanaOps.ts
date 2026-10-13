@@ -13,14 +13,21 @@ import type { AgentContext } from "./context";
 import { buildAgentContext } from "./context";
 import { friendlyError } from "./errors";
 import type { McpConfig } from "./config";
+import type { SolanaAgentSigner } from "./signer";
 import * as ops from "./operations";
 
 /** Solana implementation of ChainOps — a thin adapter over the existing operations.ts. */
 export class SolanaOps implements ChainOps {
   constructor(private readonly ctx: AgentContext) {}
 
-  static fromConfig(config: McpConfig): SolanaOps {
-    return new SolanaOps(buildAgentContext(config));
+  /** Build from config. `signer` overrides key custody (default: local keystore, i.e. stdio). */
+  static async fromConfig(config: McpConfig, signer?: SolanaAgentSigner): Promise<SolanaOps> {
+    return new SolanaOps(await buildAgentContext(config, signer));
+  }
+
+  /** Expose the resolved context so the remote host can wrap/override specific ops (e.g. invites). */
+  get context(): AgentContext {
+    return this.ctx;
   }
 
   describe(): string {

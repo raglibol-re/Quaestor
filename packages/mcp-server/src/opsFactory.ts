@@ -20,7 +20,7 @@ export type BuiltOps =
 export async function buildOps(): Promise<BuiltOps> {
   const chain = chainKind();
   if (chain === "solana") {
-    return { kind: "budget", ops: SolanaOps.fromConfig(loadMcpConfig()) };
+    return { kind: "budget", ops: await SolanaOps.fromConfig(loadMcpConfig()) };
   }
   if (chain === "hyperliquid") {
     const { buildDeskOps } = await import("./deskOps.js");

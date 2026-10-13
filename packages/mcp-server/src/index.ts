@@ -7,6 +7,11 @@ export { handleStatelessMcpRequest, startDevHttpServer, handleMcpWeb } from "./h
 export { buildOps, type BuiltOps } from "./opsFactory";
 export { buildAgentContext, type AgentContext } from "./context";
 export { SolanaOps } from "./solanaOps";
+export {
+  LocalKeystoreSolanaSigner,
+  InjectedKeypairSigner,
+  type SolanaAgentSigner,
+} from "./signer";
 export type { ChainOps } from "./chainOps";
 export { BudgetRejection } from "./chainOps";
 export type { McpConfig, EvmConfig } from "./config";
