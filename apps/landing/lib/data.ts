@@ -14,6 +14,7 @@ export const LINKS = {
   mcpSetupDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/mcp-setup.md",
   evmDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/evm.md",
   remoteConnectorDoc: "https://github.com/raglibol-re/Quaestor/blob/main/docs/remote-connector.md",
+  connectorMcp: "https://quaestor-connector.vercel.app/api/mcp",
 } as const;
 
 // Live Base Sepolia deployment — prefilled defaults for the EVM wizard (docs/evm.md).

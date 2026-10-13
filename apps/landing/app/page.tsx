@@ -316,18 +316,21 @@ export default function Home() {
             <p className="eyebrow">No install</p>
             <h2 className="heading-1">Or use it in claude.ai.</h2>
             <p>
-              Quaestor also runs as a remote connector — add one URL in claude.ai (web or app), no local
-              setup. Each connection authorizes over OAuth and is bound to exactly one mandate node; the
-              agent key is custodied server-side and the model never sees it.
+              Quaestor also runs as a live remote connector — add one URL in claude.ai (web or app), no
+              local setup. Each connection authorizes over OAuth and is bound to exactly one mandate node;
+              the agent key is custodied server-side and the model never sees it.
             </p>
+          </div>
+          <div style={{ maxWidth: 640, margin: "0 auto var(--space-8)" }}>
+            <CodeBlock label="claude.ai → Settings → Connectors → Add custom connector" code={LINKS.connectorMcp} />
           </div>
           <div className="grid3">
             <div className="card">
               <span className="numeral">I</span>
               <h3>Add the connector</h3>
               <p>
-                Settings → Connectors → Add custom connector → paste the connector&rsquo;s{" "}
-                <span className="mono">/api/mcp</span> URL.
+                In claude.ai: Settings → Connectors → Add custom connector → paste the URL above and
+                connect.
               </p>
             </div>
             <div className="card">
