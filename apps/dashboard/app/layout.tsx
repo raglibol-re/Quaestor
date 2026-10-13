@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
-import { Providers } from "./providers";
 import "./globals.css";
 
 const display = Instrument_Serif({
@@ -22,16 +21,47 @@ const mono = IBM_Plex_Mono({
   display: "swap",
 });
 
+// The home page (/) is the marketing landing, so the root metadata uses the
+// landing's social (Open Graph / Twitter) metadata. opengraph-image.png and
+// twitter-image.png in this directory are picked up automatically by Next.js.
+const TITLE = "Quaestor — give your agent a mandate, not a wallet";
+const DESCRIPTION =
+  "Hierarchical, onchain-enforced USDC spending mandates for AI agents. Fund a tree of agents, cap every branch, freeze any of it instantly — accessed over MCP. Set up in minutes.";
+
 export const metadata: Metadata = {
-  title: "Quaestor — onchain mandates for AI agents",
-  description: "Hierarchical, onchain-enforced spending mandates for AI agents. Give your agent a mandate, not a wallet.",
+  metadataBase: new URL("https://quaestor-dashboard.vercel.app"),
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: {
+    type: "website",
+    url: "https://quaestor-dashboard.vercel.app",
+    siteName: "Quaestor",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" data-theme="basalt" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      data-theme="basalt"
+      suppressHydrationWarning
+      className={`${display.variable} ${sans.variable} ${mono.variable}`}
+    >
       <body>
-        <Providers>{children}</Providers>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('quaestor-theme');if(t==='travertine'||t==='basalt'){document.documentElement.dataset.theme=t;}}catch(e){}",
+          }}
+        />
+        {children}
       </body>
     </html>
   );
